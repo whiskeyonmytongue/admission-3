@@ -6,6 +6,14 @@ import main
 
 
 class CliTests(unittest.TestCase):
+    def test_generate_rejects_even_size(self):
+        captured_out = io.StringIO()
+        captured_err = io.StringIO()
+        with patch("sys.stdout", captured_out), patch("sys.stderr", captured_err):
+            result = main.main(["--generate", "4"])
+        self.assertEqual(result, 1)
+        self.assertIn("홀수", captured_err.getvalue())
+
     def test_invalid_menu_and_row_are_retried(self):
         answers = iter(
             [

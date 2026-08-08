@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 from npu import (
     EPSILON,
     benchmark_mac,
+    compare_representations,
     compare_scores,
     generate_patterns,
     mac_nested,
@@ -150,3 +151,13 @@ def performance_rows(repetitions: int = 10) -> List[Dict[str, Any]]:
         )
     return rows
 
+
+def bonus_comparison_rows(repetitions: int = 10) -> List[Dict[str, Any]]:
+    """생성 패턴을 같은 입력·반복 수로 2D/1D 표현에서 비교한다."""
+    rows = []  # type: List[Dict[str, Any]]
+    for size in PERFORMANCE_SIZES:
+        cross, _ = generate_patterns(size)
+        comparison = compare_representations(cross, cross, repetitions)
+        comparison["size"] = size
+        rows.append(comparison)
+    return rows

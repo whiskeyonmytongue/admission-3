@@ -5,8 +5,13 @@ import sys
 from pathlib import Path
 from typing import Callable, List, Optional, Sequence
 
-from npu import EPSILON, benchmark_mac, compare_scores, mac_nested
-from simulator import analyze_data, load_json_file, performance_rows
+from npu import EPSILON, benchmark_mac, compare_scores, generate_patterns, mac_nested
+from simulator import (
+    analyze_data,
+    bonus_comparison_rows,
+    load_json_file,
+    performance_rows,
+)
 
 
 Output = Callable[[str], None]
@@ -68,6 +73,29 @@ def print_performance(repetitions: int, output_fn: Output) -> None:
         )
 
 
+def print_bonus_comparison(repetitions: int, output_fn: Output) -> None:
+    output_fn("\n[보너스: 동일 입력의 2D/1D MAC 비교]")
+    output_fn("크기       2D 평균(ms)    1D 평균(ms)    반복")
+    output_fn("-----------------------------------------------")
+    for row in bonus_comparison_rows(repetitions):
+        output_fn(
+            "{0:>2}×{0:<2}     {1:>10.6f}    {2:>10.6f}    {3:>4}".format(
+                row["size"],
+                row["nested_ms"],
+                row["flat_ms"],
+                int(row["repetitions"]),
+            )
+        )
+
+
+def print_generated_patterns(size: int, output_fn: Output) -> None:
+    cross, x_pattern = generate_patterns(size)
+    for label, matrix in (("Cross", cross), ("X", x_pattern)):
+        output_fn("\n{0} {1}×{1}".format(label, size))
+        for row in matrix:
+            output_fn(" ".join(str(int(value)) for value in row))
+
+
 def run_manual(input_fn: Input, output_fn: Output, repetitions: int = 10) -> int:
     output_fn("\n[1] 필터 입력")
     filter_a = read_matrix("필터 A", 3, input_fn, output_fn)
@@ -124,6 +152,7 @@ def run_json(path: Path, output_fn: Output, repetitions: int = 10) -> int:
             output_fn("사유: {0}".format(result["reason"]))
 
     print_performance(repetitions, output_fn)
+    print_bonus_comparison(repetitions, output_fn)
     output_fn("\n[결과 요약]")
     output_fn("총 테스트: {0}개".format(report["total"]))
     output_fn("통과: {0}개".format(report["passed"]))
@@ -154,12 +183,23 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         help="메뉴를 건너뛰고 지정한 JSON 파일을 일괄 분석합니다.",
     )
+    parser.add_argument(
+        "--generate",
+        type=int,
+        metavar="N",
+        help="홀수 N의 Cross/X 패턴을 생성해 출력합니다.",
+    )
     return parser
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     arguments = build_parser().parse_args(argv)
     try:
+        if arguments.generate is not None:
+            print("=== Mini NPU Simulator 패턴 생성기 ===")
+            print_generated_patterns(arguments.generate, print)
+            print_bonus_comparison(10, print)
+            return 0
         if arguments.json_path is not None:
             print("=== Mini NPU Simulator ===")
             return run_json(arguments.json_path, print)
@@ -174,4 +214,3 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

@@ -4,6 +4,7 @@ import unittest
 from npu import (
     EPSILON,
     benchmark_mac,
+    compare_representations,
     compare_scores,
     flatten_matrix,
     generate_patterns,
@@ -24,6 +25,14 @@ class MatrixAndMacTests(unittest.TestCase):
         cross, x_pattern = generate_patterns(5)
         self.assertEqual(mac_nested(cross, x_pattern), mac_flat(cross, x_pattern))
         self.assertEqual(len(flatten_matrix(cross)), 25)
+
+    def test_representation_comparison_uses_same_score_and_repetitions(self):
+        cross, _ = generate_patterns(13)
+        result = compare_representations(cross, cross, 10)
+        self.assertEqual(result["score"], 25.0)
+        self.assertEqual(result["repetitions"], 10.0)
+        self.assertGreaterEqual(result["nested_ms"], 0.0)
+        self.assertGreaterEqual(result["flat_ms"], 0.0)
 
     def test_ragged_and_size_mismatch_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "정사각형"):

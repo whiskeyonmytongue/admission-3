@@ -4,7 +4,13 @@ import unittest
 from pathlib import Path
 
 from npu import generate_patterns
-from simulator import analyze_data, extract_pattern_size, load_json_file, performance_rows
+from simulator import (
+    analyze_data,
+    bonus_comparison_rows,
+    extract_pattern_size,
+    load_json_file,
+    performance_rows,
+)
 
 
 def valid_data():
@@ -89,6 +95,11 @@ class ExtractionAndPerformanceTests(unittest.TestCase):
         self.assertEqual([row["size"] for row in rows], [3, 5, 13, 25])
         self.assertEqual([row["operations"] for row in rows], [9, 25, 169, 625])
         self.assertTrue(all(row["repetitions"] >= 10 for row in rows))
+
+    def test_bonus_compares_all_sizes_with_same_repetitions(self):
+        rows = bonus_comparison_rows(10)
+        self.assertEqual([row["size"] for row in rows], [3, 5, 13, 25])
+        self.assertTrue(all(row["repetitions"] == 10.0 for row in rows))
 
 
 if __name__ == "__main__":

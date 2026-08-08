@@ -2,7 +2,7 @@
 
 import math
 import time
-from typing import Callable, List, Sequence, Tuple
+from typing import Callable, Dict, List, Tuple
 
 
 EPSILON = 1e-9
@@ -46,12 +46,16 @@ def mac_nested(pattern: object, filter_matrix: object) -> float:
     """중첩 반복문으로 위치별 곱을 누적한다."""
     checked_pattern = validate_matrix(pattern)
     checked_filter = validate_matrix(filter_matrix, len(checked_pattern))
+    return _mac_nested_values(checked_pattern, checked_filter)
+
+
+def _mac_nested_values(pattern: Matrix, filter_matrix: Matrix) -> float:
     score = 0.0
-    for row_index in range(len(checked_pattern)):
-        for column_index in range(len(checked_pattern)):
+    for row_index in range(len(pattern)):
+        for column_index in range(len(pattern)):
             score += (
-                checked_pattern[row_index][column_index]
-                * checked_filter[row_index][column_index]
+                pattern[row_index][column_index]
+                * filter_matrix[row_index][column_index]
             )
     return score
 
@@ -72,10 +76,49 @@ def mac_flat(pattern: object, filter_matrix: object) -> float:
     checked_filter = validate_matrix(filter_matrix, len(checked_pattern))
     flat_pattern = flatten_matrix(checked_pattern)
     flat_filter = flatten_matrix(checked_filter)
+    return _mac_flat_values(flat_pattern, flat_filter)
+
+
+def _mac_flat_values(pattern: List[float], filter_matrix: List[float]) -> float:
     score = 0.0
-    for index in range(len(flat_pattern)):
-        score += flat_pattern[index] * flat_filter[index]
+    for index in range(len(pattern)):
+        score += pattern[index] * filter_matrix[index]
     return score
+
+
+def compare_representations(
+    pattern: object, filter_matrix: object, repetitions: int = 10
+) -> Dict[str, float]:
+    """검증·평탄화 시간을 제외하고 2D/1D MAC의 동일 반복 구간을 비교한다."""
+    if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions < 1:
+        raise ValueError("반복 횟수는 1 이상의 정수여야 합니다.")
+    checked_pattern = validate_matrix(pattern)
+    checked_filter = validate_matrix(filter_matrix, len(checked_pattern))
+    flat_pattern = flatten_matrix(checked_pattern)
+    flat_filter = flatten_matrix(checked_filter)
+
+    nested_score = 0.0
+    nested_started = time.perf_counter_ns()
+    for _ in range(repetitions):
+        nested_score = _mac_nested_values(checked_pattern, checked_filter)
+    nested_ns = time.perf_counter_ns() - nested_started
+
+    flat_score = 0.0
+    flat_started = time.perf_counter_ns()
+    for _ in range(repetitions):
+        flat_score = _mac_flat_values(flat_pattern, flat_filter)
+    flat_ns = time.perf_counter_ns() - flat_started
+
+    if nested_score != flat_score:
+        raise RuntimeError("2D와 1D MAC 점수가 일치하지 않습니다.")
+    nested_ms = nested_ns / repetitions / 1_000_000.0
+    flat_ms = flat_ns / repetitions / 1_000_000.0
+    return {
+        "nested_ms": nested_ms,
+        "flat_ms": flat_ms,
+        "score": nested_score,
+        "repetitions": float(repetitions),
+    }
 
 
 def compare_scores(
@@ -147,4 +190,3 @@ def benchmark_mac(
     elapsed_ns = time.perf_counter_ns() - started_at
     average_ms = elapsed_ns / repetitions / 1_000_000.0
     return average_ms, score
-
