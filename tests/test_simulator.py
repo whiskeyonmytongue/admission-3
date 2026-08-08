@@ -19,6 +19,12 @@ def valid_data():
 
 
 class JsonAnalysisTests(unittest.TestCase):
+    def test_static_data_contains_six_passing_cases(self):
+        project_data = load_json_file(Path(__file__).parents[1] / "data.json")
+        report = analyze_data(project_data)
+        self.assertEqual((report["total"], report["passed"], report["failed"]), (6, 6, 0))
+        self.assertFalse(project_data["_meta"]["official_attachment"])
+
     def test_valid_cases_pass_with_normalized_labels(self):
         report = analyze_data(valid_data())
         self.assertEqual((report["total"], report["passed"], report["failed"]), (2, 2, 0))
