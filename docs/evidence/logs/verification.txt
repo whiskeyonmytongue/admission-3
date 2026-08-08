@@ -1,0 +1,37 @@
+python3 -m unittest -v
+test_eof_exits_without_traceback (tests.test_cli.CliTests.test_eof_exits_without_traceback) ... ok
+test_generate_rejects_even_size (tests.test_cli.CliTests.test_generate_rejects_even_size) ... ok
+test_invalid_menu_and_row_are_retried (tests.test_cli.CliTests.test_invalid_menu_and_row_are_retried) ... ok
+test_keyboard_interrupt_exits_without_traceback (tests.test_cli.CliTests.test_keyboard_interrupt_exits_without_traceback) ... ok
+test_cross_scores_higher_for_cross_pattern (tests.test_npu.MatrixAndMacTests.test_cross_scores_higher_for_cross_pattern) ... ok
+test_flat_and_nested_have_same_score (tests.test_npu.MatrixAndMacTests.test_flat_and_nested_have_same_score) ... ok
+test_invalid_numbers_are_rejected (tests.test_npu.MatrixAndMacTests.test_invalid_numbers_are_rejected) ... ok
+test_ragged_and_size_mismatch_are_rejected (tests.test_npu.MatrixAndMacTests.test_ragged_and_size_mismatch_are_rejected) ... ok
+test_representation_comparison_uses_same_score_and_repetitions (tests.test_npu.MatrixAndMacTests.test_representation_comparison_uses_same_score_and_repetitions) ... ok
+test_benchmark_rejects_invalid_repetition (tests.test_npu.PolicyTests.test_benchmark_rejects_invalid_repetition) ... ok
+test_difference_below_epsilon_is_tie (tests.test_npu.PolicyTests.test_difference_below_epsilon_is_tie) ... ok
+test_difference_exactly_epsilon_is_not_tie (tests.test_npu.PolicyTests.test_difference_exactly_epsilon_is_not_tie) ... ok
+test_even_pattern_size_is_rejected (tests.test_npu.PolicyTests.test_even_pattern_size_is_rejected) ... ok
+test_label_normalization (tests.test_npu.PolicyTests.test_label_normalization) ... ok
+test_bonus_compares_all_sizes_with_same_repetitions (tests.test_simulator.ExtractionAndPerformanceTests.test_bonus_compares_all_sizes_with_same_repetitions) ... ok
+test_extract_pattern_size (tests.test_simulator.ExtractionAndPerformanceTests.test_extract_pattern_size) ... ok
+test_performance_has_required_sizes_and_repetitions (tests.test_simulator.ExtractionAndPerformanceTests.test_performance_has_required_sizes_and_repetitions) ... ok
+test_bad_case_does_not_stop_following_case (tests.test_simulator.JsonAnalysisTests.test_bad_case_does_not_stop_following_case) ... ok
+test_load_json_reports_parse_error (tests.test_simulator.JsonAnalysisTests.test_load_json_reports_parse_error) ... ok
+test_malformed_schema_is_reported_per_case (tests.test_simulator.JsonAnalysisTests.test_malformed_schema_is_reported_per_case) ... ok
+test_missing_filter_only_fails_related_case (tests.test_simulator.JsonAnalysisTests.test_missing_filter_only_fails_related_case) ... ok
+test_patterns_must_be_mapping (tests.test_simulator.JsonAnalysisTests.test_patterns_must_be_mapping) ... ok
+test_static_data_contains_six_passing_cases (tests.test_simulator.JsonAnalysisTests.test_static_data_contains_six_passing_cases) ... ok
+test_valid_cases_pass_with_normalized_labels (tests.test_simulator.JsonAnalysisTests.test_valid_cases_pass_with_normalized_labels) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 0.006s
+
+OK
+python3 -m py_compile main.py npu.py simulator.py tests/*.py scripts/*.py
+python3 scripts/check_python38.py
+[PASS] Python 3.8 문법 호환
+python3 -c 'from pathlib import Path; from simulator import analyze_data, load_json_file; r = analyze_data(load_json_file(Path("data.json"))); assert (r["total"], r["passed"], r["failed"]) == (6, 6, 0); print("[PASS] data.json 6/6")'
+[PASS] data.json 6/6
+[PASS] EOF 안전 종료
+[PASS] 로컬 필수·보너스 검증 완료
