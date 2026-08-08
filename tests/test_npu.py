@@ -1,3 +1,5 @@
+"""행렬 검증, MAC 계산, 판정 정책을 검증한다."""
+
 import math
 import unittest
 
@@ -23,7 +25,10 @@ class MatrixAndMacTests(unittest.TestCase):
 
     def test_flat_and_nested_have_same_score(self):
         cross, x_pattern = generate_patterns(5)
-        self.assertEqual(mac_nested(cross, x_pattern), mac_flat(cross, x_pattern))
+        self.assertEqual(
+            mac_nested(cross, x_pattern),
+            mac_flat(cross, x_pattern),
+        )
         self.assertEqual(len(flatten_matrix(cross)), 25)
 
     def test_representation_comparison_uses_same_score_and_repetitions(self):

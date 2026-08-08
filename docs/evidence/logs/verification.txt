@@ -1,57 +1,79 @@
-python3 -m unittest -v
-test_argument_parsing_interrupt_exits_without_traceback (tests.test_cli.CliTests.test_argument_parsing_interrupt_exits_without_traceback) ... ok
-test_eof_exits_without_traceback (tests.test_cli.CliTests.test_eof_exits_without_traceback) ... ok
-test_generate_rejects_even_size (tests.test_cli.CliTests.test_generate_rejects_even_size) ... ok
-test_invalid_menu_and_row_are_retried (tests.test_cli.CliTests.test_invalid_menu_and_row_are_retried) ... ok
-test_keyboard_interrupt_exits_without_traceback (tests.test_cli.CliTests.test_keyboard_interrupt_exits_without_traceback) ... ok
-test_cross_scores_higher_for_cross_pattern (tests.test_npu.MatrixAndMacTests.test_cross_scores_higher_for_cross_pattern) ... ok
-test_flat_and_nested_have_same_score (tests.test_npu.MatrixAndMacTests.test_flat_and_nested_have_same_score) ... ok
-test_invalid_numbers_are_rejected (tests.test_npu.MatrixAndMacTests.test_invalid_numbers_are_rejected) ... ok
-test_ragged_and_size_mismatch_are_rejected (tests.test_npu.MatrixAndMacTests.test_ragged_and_size_mismatch_are_rejected) ... ok
-test_representation_comparison_uses_same_score_and_repetitions (tests.test_npu.MatrixAndMacTests.test_representation_comparison_uses_same_score_and_repetitions) ... ok
-test_benchmark_rejects_invalid_repetition (tests.test_npu.PolicyTests.test_benchmark_rejects_invalid_repetition) ... ok
-test_difference_below_epsilon_is_tie (tests.test_npu.PolicyTests.test_difference_below_epsilon_is_tie) ... ok
-test_difference_exactly_epsilon_is_not_tie (tests.test_npu.PolicyTests.test_difference_exactly_epsilon_is_not_tie) ... ok
-test_even_pattern_size_is_rejected (tests.test_npu.PolicyTests.test_even_pattern_size_is_rejected) ... ok
-test_label_normalization (tests.test_npu.PolicyTests.test_label_normalization) ... ok
-test_bonus_compares_all_sizes_with_same_repetitions (tests.test_simulator.ExtractionAndPerformanceTests.test_bonus_compares_all_sizes_with_same_repetitions) ... ok
-test_extract_pattern_size (tests.test_simulator.ExtractionAndPerformanceTests.test_extract_pattern_size) ... ok
-test_performance_has_required_sizes_and_repetitions (tests.test_simulator.ExtractionAndPerformanceTests.test_performance_has_required_sizes_and_repetitions) ... ok
-test_bad_case_does_not_stop_following_case (tests.test_simulator.JsonAnalysisTests.test_bad_case_does_not_stop_following_case) ... ok
-test_huge_integer_only_fails_its_case (tests.test_simulator.JsonAnalysisTests.test_huge_integer_only_fails_its_case) ... ok
-test_load_json_reports_excessive_nesting (tests.test_simulator.JsonAnalysisTests.test_load_json_reports_excessive_nesting) ... ok
-test_load_json_reports_parse_error (tests.test_simulator.JsonAnalysisTests.test_load_json_reports_parse_error) ... ok
-test_malformed_schema_is_reported_per_case (tests.test_simulator.JsonAnalysisTests.test_malformed_schema_is_reported_per_case) ... ok
-test_missing_filter_only_fails_related_case (tests.test_simulator.JsonAnalysisTests.test_missing_filter_only_fails_related_case) ... ok
-test_patterns_must_be_mapping (tests.test_simulator.JsonAnalysisTests.test_patterns_must_be_mapping) ... ok
-test_static_data_contains_six_passing_cases (tests.test_simulator.JsonAnalysisTests.test_static_data_contains_six_passing_cases) ... ok
-test_valid_cases_pass_with_normalized_labels (tests.test_simulator.JsonAnalysisTests.test_valid_cases_pass_with_normalized_labels) ... ok
+$ make verify
+PYTHONDONTWRITEBYTECODE=1 python3 -m py_compile \
+	main.py npu.py simulator.py scripts/check_data.py \
+	scripts/check_style.py \
+	tests/test_cli.py tests/test_npu.py tests/test_simulator.py \
+	tests/test_style.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_style.py
+Style check: PASS (11 files, Python 3.8+)
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
+test_argument_parsing_interrupt_exits_without_traceback (test_cli.CliTests.test_argument_parsing_interrupt_exits_without_traceback) ... ok
+test_eof_exits_without_traceback (test_cli.CliTests.test_eof_exits_without_traceback) ... ok
+test_generate_rejects_even_size (test_cli.CliTests.test_generate_rejects_even_size) ... ok
+test_invalid_menu_and_row_are_retried (test_cli.CliTests.test_invalid_menu_and_row_are_retried) ... ok
+test_json_option_reports_failed_case (test_cli.CliTests.test_json_option_reports_failed_case) ... ok
+test_json_option_reports_invalid_filters_schema (test_cli.CliTests.test_json_option_reports_invalid_filters_schema) ... ok
+test_json_option_reports_missing_file (test_cli.CliTests.test_json_option_reports_missing_file) ... ok
+test_json_option_reports_success (test_cli.CliTests.test_json_option_reports_success) ... ok
+test_keyboard_interrupt_exits_without_traceback (test_cli.CliTests.test_keyboard_interrupt_exits_without_traceback) ... ok
+test_read_matrix_retries_nan_and_infinity (test_cli.CliTests.test_read_matrix_retries_nan_and_infinity) ... ok
+test_run_cli_handles_eof_directly (test_cli.CliTests.test_run_cli_handles_eof_directly) ... ok
+test_run_cli_handles_keyboard_interrupt_directly (test_cli.CliTests.test_run_cli_handles_keyboard_interrupt_directly) ... ok
+test_cross_scores_higher_for_cross_pattern (test_npu.MatrixAndMacTests.test_cross_scores_higher_for_cross_pattern) ... ok
+test_flat_and_nested_have_same_score (test_npu.MatrixAndMacTests.test_flat_and_nested_have_same_score) ... ok
+test_invalid_numbers_are_rejected (test_npu.MatrixAndMacTests.test_invalid_numbers_are_rejected) ... ok
+test_ragged_and_size_mismatch_are_rejected (test_npu.MatrixAndMacTests.test_ragged_and_size_mismatch_are_rejected) ... ok
+test_representation_comparison_uses_same_score_and_repetitions (test_npu.MatrixAndMacTests.test_representation_comparison_uses_same_score_and_repetitions) ... ok
+test_benchmark_rejects_invalid_repetition (test_npu.PolicyTests.test_benchmark_rejects_invalid_repetition) ... ok
+test_difference_below_epsilon_is_tie (test_npu.PolicyTests.test_difference_below_epsilon_is_tie) ... ok
+test_difference_exactly_epsilon_is_not_tie (test_npu.PolicyTests.test_difference_exactly_epsilon_is_not_tie) ... ok
+test_even_pattern_size_is_rejected (test_npu.PolicyTests.test_even_pattern_size_is_rejected) ... ok
+test_label_normalization (test_npu.PolicyTests.test_label_normalization) ... ok
+test_bonus_compares_all_sizes_with_same_repetitions (test_simulator.ExtractionAndPerformanceTests.test_bonus_compares_all_sizes_with_same_repetitions) ... ok
+test_extract_pattern_size (test_simulator.ExtractionAndPerformanceTests.test_extract_pattern_size) ... ok
+test_performance_has_required_sizes_and_repetitions (test_simulator.ExtractionAndPerformanceTests.test_performance_has_required_sizes_and_repetitions) ... ok
+test_bad_case_does_not_stop_following_case (test_simulator.JsonAnalysisTests.test_bad_case_does_not_stop_following_case) ... ok
+test_filters_must_be_mapping (test_simulator.JsonAnalysisTests.test_filters_must_be_mapping) ... ok
+test_huge_integer_only_fails_its_case (test_simulator.JsonAnalysisTests.test_huge_integer_only_fails_its_case) ... ok
+test_load_json_reports_excessive_nesting (test_simulator.JsonAnalysisTests.test_load_json_reports_excessive_nesting) ... ok
+test_load_json_reports_parse_error (test_simulator.JsonAnalysisTests.test_load_json_reports_parse_error) ... ok
+test_malformed_schema_is_reported_per_case (test_simulator.JsonAnalysisTests.test_malformed_schema_is_reported_per_case) ... ok
+test_missing_filter_only_fails_related_case (test_simulator.JsonAnalysisTests.test_missing_filter_only_fails_related_case) ... ok
+test_patterns_must_be_mapping (test_simulator.JsonAnalysisTests.test_patterns_must_be_mapping) ... ok
+test_static_data_contains_six_passing_cases (test_simulator.JsonAnalysisTests.test_static_data_contains_six_passing_cases) ... ok
+test_valid_cases_pass_with_normalized_labels (test_simulator.JsonAnalysisTests.test_valid_cases_pass_with_normalized_labels) ... ok
+test_empty_discovery_returns_failure (test_style.StyleCheckerTests.test_empty_discovery_returns_failure) ... ok
+test_indent_check_allows_alignment_but_rejects_wide_suite (test_style.StyleCheckerTests.test_indent_check_allows_alignment_but_rejects_wide_suite) ... ok
+test_invalid_utf8_reports_line_number (test_style.StyleCheckerTests.test_invalid_utf8_reports_line_number) ... ok
+test_overlong_line_returns_failure_with_location (test_style.StyleCheckerTests.test_overlong_line_returns_failure_with_location) ... ok
 
 ----------------------------------------------------------------------
-Ran 27 tests in 0.007s
+Ran 39 tests in 0.014s
 
 OK
-python3 -m py_compile main.py npu.py simulator.py tests/*.py scripts/*.py
-python3 scripts/check_python38.py
-[PASS] Python 3.8 문법 호환
-python3 -c 'from pathlib import Path; from simulator import analyze_data, load_json_file; r = analyze_data(load_json_file(Path("data.json"))); assert (r["total"], r["passed"], r["failed"]) == (6, 6, 0); print("[PASS] data.json 6/6")'
 [PASS] data.json 6/6
 [PASS] EOF 안전 종료
 [PASS] 로컬 필수·보너스 검증 완료
 
 $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
     -v "$PWD:/work:ro" -w /work python:3.8-slim sh -c \
-    'python --version && python -m unittest -v && \
-     python -m py_compile main.py npu.py simulator.py tests/*.py scripts/*.py && \
-     python scripts/check_python38.py && \
-     python -c '\''from pathlib import Path; from simulator import analyze_data, load_json_file; r = analyze_data(load_json_file(Path("data.json"))); assert (r["total"], r["passed"], r["failed"]) == (6, 6, 0)'\'' && \
+    'python --version && \
+     python -m py_compile main.py npu.py simulator.py \
+       scripts/check_data.py scripts/check_style.py \
+       tests/test_cli.py tests/test_npu.py tests/test_simulator.py \
+       tests/test_style.py && \
+     python scripts/check_style.py && \
+     python -m unittest discover -s tests -v && \
+     python -m scripts.check_data && \
      printf "" | python main.py | grep -q "안전하게 종료"'
 Python 3.8.20
-Ran 27 tests in 0.011s
+Style check: PASS (11 files, Python 3.8+)
+Ran 39 tests in 0.025s
 OK
-[PASS] Python 3.8 문법 호환
-[PASS] Python 3.8 data.json 6/6
+[PASS] data.json 6/6
 [PASS] Python 3.8 EOF 안전 종료
+
+[이전 공개 기준선의 원격 검증 기록 — 현재 로컬 보강은 push 전]
 
 $ make verify-remote
 [PASS] PUBLIC/main/HEAD 일치

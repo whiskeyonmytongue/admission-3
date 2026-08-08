@@ -3,10 +3,11 @@
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from npu import (
     EPSILON,
+    Matrix,
     benchmark_mac,
     compare_representations,
     compare_scores,
@@ -46,7 +47,10 @@ def extract_pattern_size(case_id: object) -> int:
     return size
 
 
-def _normalized_filters(raw_filter_set: object, size: int) -> Dict[str, object]:
+def _normalized_filters(
+    raw_filter_set: object,
+    size: int,
+) -> Dict[str, object]:
     if not isinstance(raw_filter_set, dict):
         raise ValueError("size_{0} 필터는 객체여야 합니다.".format(size))
     normalized = {}  # type: Dict[str, object]
@@ -61,6 +65,83 @@ def _normalized_filters(raw_filter_set: object, size: int) -> Dict[str, object]:
     return normalized
 
 
+def _empty_result(case_id: object) -> Dict[str, Any]:
+    return {
+        "id": str(case_id),
+        "status": "FAIL",
+        "reason": "",
+        "cross_score": None,
+        "x_score": None,
+        "predicted": None,
+        "expected": None,
+    }
+
+
+def _case_matrices(
+    case_id: object,
+    raw_case: object,
+    raw_filters: Dict[str, object],
+) -> Tuple[Matrix, Matrix, Matrix, str]:
+    size = extract_pattern_size(case_id)
+    if not isinstance(raw_case, dict):
+        raise ValueError("패턴 항목은 객체여야 합니다.")
+    if "input" not in raw_case or "expected" not in raw_case:
+        raise ValueError("패턴 항목에는 input과 expected가 필요합니다.")
+    filter_key = "size_{0}".format(size)
+    if filter_key not in raw_filters:
+        raise ValueError("{0} 필터가 없습니다.".format(filter_key))
+    filters = _normalized_filters(raw_filters[filter_key], size)
+    return (
+        validate_matrix(raw_case["input"], size),
+        validate_matrix(filters["Cross"], size),
+        validate_matrix(filters["X"], size),
+        normalize_label(raw_case["expected"]),
+    )
+
+
+def _analyze_case(
+    case_id: object,
+    raw_case: object,
+    raw_filters: Dict[str, object],
+) -> Dict[str, Any]:
+    result = _empty_result(case_id)
+    try:
+        pattern, cross_filter, x_filter, expected = _case_matrices(
+            case_id,
+            raw_case,
+            raw_filters,
+        )
+        cross_score = mac_nested(pattern, cross_filter)
+        x_score = mac_nested(pattern, x_filter)
+        predicted = compare_scores(
+            cross_score,
+            x_score,
+            "Cross",
+            "X",
+            EPSILON,
+        )
+        result.update(
+            {
+                "cross_score": cross_score,
+                "x_score": x_score,
+                "predicted": predicted,
+                "expected": expected,
+            }
+        )
+        if predicted == expected:
+            result.update(status="PASS", reason="예상 라벨과 일치")
+        elif predicted == "UNDECIDED":
+            result["reason"] = "epsilon 정책에 따라 동점(UNDECIDED)"
+        else:
+            result["reason"] = "판정 {0}, 예상 {1}".format(
+                predicted,
+                expected,
+            )
+    except (KeyError, TypeError, ValueError, OverflowError) as error:
+        result["reason"] = str(error)
+    return result
+
+
 def analyze_data(data: object) -> Dict[str, Any]:
     """모든 패턴을 독립적으로 분석하여 오류 케이스만 FAIL 처리한다."""
     if not isinstance(data, dict):
@@ -70,58 +151,12 @@ def analyze_data(data: object) -> Dict[str, Any]:
         raise ValueError("patterns는 객체여야 합니다.")
     raw_filters = data.get("filters")
     if not isinstance(raw_filters, dict):
-        raw_filters = {}
+        raise ValueError("filters는 객체여야 합니다.")
 
-    results = []  # type: List[Dict[str, Any]]
-    for case_id, raw_case in raw_patterns.items():
-        result = {
-            "id": str(case_id),
-            "status": "FAIL",
-            "reason": "",
-            "cross_score": None,
-            "x_score": None,
-            "predicted": None,
-            "expected": None,
-        }  # type: Dict[str, Any]
-        try:
-            size = extract_pattern_size(case_id)
-            if not isinstance(raw_case, dict):
-                raise ValueError("패턴 항목은 객체여야 합니다.")
-            if "input" not in raw_case or "expected" not in raw_case:
-                raise ValueError("패턴 항목에는 input과 expected가 필요합니다.")
-
-            filter_key = "size_{0}".format(size)
-            if filter_key not in raw_filters:
-                raise ValueError("{0} 필터가 없습니다.".format(filter_key))
-            filters = _normalized_filters(raw_filters[filter_key], size)
-            pattern = validate_matrix(raw_case["input"], size)
-            cross_filter = validate_matrix(filters["Cross"], size)
-            x_filter = validate_matrix(filters["X"], size)
-            expected = normalize_label(raw_case["expected"])
-
-            cross_score = mac_nested(pattern, cross_filter)
-            x_score = mac_nested(pattern, x_filter)
-            predicted = compare_scores(
-                cross_score, x_score, "Cross", "X", EPSILON
-            )
-            result.update(
-                {
-                    "cross_score": cross_score,
-                    "x_score": x_score,
-                    "predicted": predicted,
-                    "expected": expected,
-                }
-            )
-            if predicted == expected:
-                result["status"] = "PASS"
-                result["reason"] = "예상 라벨과 일치"
-            elif predicted == "UNDECIDED":
-                result["reason"] = "epsilon 정책에 따라 동점(UNDECIDED)"
-            else:
-                result["reason"] = "판정 {0}, 예상 {1}".format(predicted, expected)
-        except (KeyError, TypeError, ValueError, OverflowError) as error:
-            result["reason"] = str(error)
-        results.append(result)
+    results = [
+        _analyze_case(case_id, raw_case, raw_filters)
+        for case_id, raw_case in raw_patterns.items()
+    ]
 
     passed = sum(1 for result in results if result["status"] == "PASS")
     return {

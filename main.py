@@ -1,11 +1,18 @@
 """Mini NPU Simulator 콘솔 진입점."""
 
 import argparse
+import math
 import sys
 from pathlib import Path
 from typing import Callable, List, Optional, Sequence
 
-from npu import EPSILON, benchmark_mac, compare_scores, generate_patterns, mac_nested
+from npu import (
+    EPSILON,
+    benchmark_mac,
+    compare_scores,
+    generate_patterns,
+    mac_nested,
+)
 from simulator import (
     analyze_data,
     bonus_comparison_rows,
@@ -30,7 +37,19 @@ def read_mode(input_fn: Input, output_fn: Output) -> str:
         output_fn("입력 오류: 1 또는 2를 입력하세요.")
 
 
-def read_matrix(name: str, size: int, input_fn: Input, output_fn: Output) -> List[List[float]]:
+def _row_input_error(size: int) -> str:
+    return (
+        "입력 형식 오류: 각 줄에 {0}개의 숫자를 공백으로 구분해 "
+        "입력하세요."
+    ).format(size)
+
+
+def read_matrix(
+    name: str,
+    size: int,
+    input_fn: Input,
+    output_fn: Output,
+) -> List[List[float]]:
     """행 단위 오류를 안내하고 현재 행부터 재입력한다."""
     output_fn("{0} ({1}줄 입력, 공백 구분)".format(name, size))
     matrix = []  # type: List[List[float]]
@@ -38,22 +57,14 @@ def read_matrix(name: str, size: int, input_fn: Input, output_fn: Output) -> Lis
         row_number = len(matrix) + 1
         raw = input_fn("{0}행: ".format(row_number)).strip().split()
         if len(raw) != size:
-            output_fn(
-                "입력 형식 오류: 각 줄에 {0}개의 숫자를 공백으로 구분해 입력하세요.".format(
-                    size
-                )
-            )
+            output_fn(_row_input_error(size))
             continue
         try:
             row = [float(value) for value in raw]
         except ValueError:
-            output_fn(
-                "입력 형식 오류: 각 줄에 {0}개의 숫자를 공백으로 구분해 입력하세요.".format(
-                    size
-                )
-            )
+            output_fn(_row_input_error(size))
             continue
-        if not all(value == value and abs(value) != float("inf") for value in row):
+        if not all(math.isfinite(value) for value in row):
             output_fn("입력 형식 오류: 유한한 숫자만 입력하세요.")
             continue
         matrix.append(row)
@@ -62,6 +73,7 @@ def read_matrix(name: str, size: int, input_fn: Input, output_fn: Output) -> Lis
 
 
 def print_performance(repetitions: int, output_fn: Output) -> None:
+    """필수 크기의 평균 MAC 시간과 연산 횟수를 출력한다."""
     output_fn("\n[성능 분석: 평균/{0}회]".format(repetitions))
     output_fn("크기       평균 시간(ms)    연산 횟수(N²)")
     output_fn("----------------------------------------")
@@ -74,6 +86,7 @@ def print_performance(repetitions: int, output_fn: Output) -> None:
 
 
 def print_bonus_comparison(repetitions: int, output_fn: Output) -> None:
+    """동일 입력에서 2D와 1D MAC 시간을 비교해 출력한다."""
     output_fn("\n[보너스: 동일 입력의 2D/1D MAC 비교]")
     output_fn("크기       2D 평균(ms)    1D 평균(ms)    반복")
     output_fn("-----------------------------------------------")
@@ -89,6 +102,7 @@ def print_bonus_comparison(repetitions: int, output_fn: Output) -> None:
 
 
 def print_generated_patterns(size: int, output_fn: Output) -> None:
+    """홀수 크기의 Cross와 X 패턴을 출력한다."""
     cross, x_pattern = generate_patterns(size)
     for label, matrix in (("Cross", cross), ("X", x_pattern)):
         output_fn("\n{0} {1}×{1}".format(label, size))
@@ -96,7 +110,12 @@ def print_generated_patterns(size: int, output_fn: Output) -> None:
             output_fn(" ".join(str(int(value)) for value in row))
 
 
-def run_manual(input_fn: Input, output_fn: Output, repetitions: int = 10) -> int:
+def run_manual(
+    input_fn: Input,
+    output_fn: Output,
+    repetitions: int = 10,
+) -> int:
+    """3×3 필터와 패턴을 입력받아 MAC 판정 결과를 출력한다."""
     output_fn("\n[1] 필터 입력")
     filter_a = read_matrix("필터 A", 3, input_fn, output_fn)
     filter_b = read_matrix("필터 B", 3, input_fn, output_fn)
@@ -128,6 +147,7 @@ def _filter_sizes(data: object) -> List[str]:
 
 
 def run_json(path: Path, output_fn: Output, repetitions: int = 10) -> int:
+    """JSON의 전체 케이스와 성능 분석 결과를 출력한다."""
     data = load_json_file(path)
     output_fn("\n[1] 필터 로드")
     output_fn("파일: {0}".format(path))
@@ -165,17 +185,26 @@ def run_json(path: Path, output_fn: Output, repetitions: int = 10) -> int:
     return 0 if report["failed"] == 0 else 1
 
 
-def run_cli(input_fn: Optional[Input] = None, output_fn: Output = print) -> int:
+def run_cli(
+    input_fn: Optional[Input] = None,
+    output_fn: Output = print,
+) -> int:
+    """대화형 실행을 시작하고 입력 중단을 안전 종료로 변환한다."""
     actual_input = input if input_fn is None else input_fn
-    output_fn("=== Mini NPU Simulator ===")
-    mode = read_mode(actual_input, output_fn)
-    if mode == "1":
-        return run_manual(actual_input, output_fn)
-    path_text = actual_input("data.json 경로 [data.json]: ").strip()
-    return run_json(Path(path_text or "data.json"), output_fn)
+    try:
+        output_fn("=== Mini NPU Simulator ===")
+        mode = read_mode(actual_input, output_fn)
+        if mode == "1":
+            return run_manual(actual_input, output_fn)
+        path_text = actual_input("data.json 경로 [data.json]: ").strip()
+        return run_json(Path(path_text or "data.json"), output_fn)
+    except (EOFError, KeyboardInterrupt):
+        output_fn("\n입력이 종료되어 시뮬레이터를 안전하게 종료합니다.")
+        return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """명령행 인자 파서를 구성한다."""
     parser = argparse.ArgumentParser(description="반복문 기반 Mini NPU Simulator")
     parser.add_argument(
         "--json",
@@ -193,6 +222,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    """명령행 모드를 실행하고 예상 가능한 오류를 종료 코드로 변환한다."""
     try:
         arguments = build_parser().parse_args(argv)
         if arguments.generate is not None:

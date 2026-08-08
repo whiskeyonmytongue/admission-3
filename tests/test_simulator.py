@@ -1,3 +1,5 @@
+"""JSON 케이스 격리와 성능 리포트를 검증한다."""
+
 import json
 import tempfile
 import unittest
@@ -29,12 +31,18 @@ class JsonAnalysisTests(unittest.TestCase):
     def test_static_data_contains_six_passing_cases(self):
         project_data = load_json_file(Path(__file__).parents[1] / "data.json")
         report = analyze_data(project_data)
-        self.assertEqual((report["total"], report["passed"], report["failed"]), (6, 6, 0))
+        self.assertEqual(
+            (report["total"], report["passed"], report["failed"]),
+            (6, 6, 0),
+        )
         self.assertFalse(project_data["_meta"]["official_attachment"])
 
     def test_valid_cases_pass_with_normalized_labels(self):
         report = analyze_data(valid_data())
-        self.assertEqual((report["total"], report["passed"], report["failed"]), (2, 2, 0))
+        self.assertEqual(
+            (report["total"], report["passed"], report["failed"]),
+            (2, 2, 0),
+        )
         self.assertEqual(report["results"][0]["predicted"], "Cross")
         self.assertEqual(report["results"][1]["predicted"], "X")
 
@@ -45,7 +53,10 @@ class JsonAnalysisTests(unittest.TestCase):
             "size_3_good": data["patterns"]["size_3_2"],
         }
         report = analyze_data(data)
-        self.assertEqual((report["total"], report["passed"], report["failed"]), (2, 1, 1))
+        self.assertEqual(
+            (report["total"], report["passed"], report["failed"]),
+            (2, 1, 1),
+        )
         self.assertIn("크기 불일치", report["results"][0]["reason"])
         self.assertEqual(report["results"][1]["status"], "PASS")
 
@@ -57,7 +68,10 @@ class JsonAnalysisTests(unittest.TestCase):
 
         report = analyze_data(data)
 
-        self.assertEqual((report["total"], report["passed"], report["failed"]), (2, 1, 1))
+        self.assertEqual(
+            (report["total"], report["passed"], report["failed"]),
+            (2, 1, 1),
+        )
         self.assertIn("float 범위", report["results"][0]["reason"])
         self.assertEqual(report["results"][1]["status"], "PASS")
 
@@ -87,6 +101,10 @@ class JsonAnalysisTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "patterns"):
             analyze_data({"filters": {}, "patterns": []})
 
+    def test_filters_must_be_mapping(self):
+        with self.assertRaisesRegex(ValueError, "filters는 객체여야 합니다"):
+            analyze_data({"filters": [], "patterns": {}})
+
     def test_load_json_reports_parse_error(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "bad.json"
@@ -114,7 +132,10 @@ class ExtractionAndPerformanceTests(unittest.TestCase):
     def test_performance_has_required_sizes_and_repetitions(self):
         rows = performance_rows(10)
         self.assertEqual([row["size"] for row in rows], [3, 5, 13, 25])
-        self.assertEqual([row["operations"] for row in rows], [9, 25, 169, 625])
+        self.assertEqual(
+            [row["operations"] for row in rows],
+            [9, 25, 169, 625],
+        )
         self.assertTrue(all(row["repetitions"] >= 10 for row in rows))
 
     def test_bonus_compares_all_sizes_with_same_repetitions(self):

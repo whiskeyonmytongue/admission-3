@@ -65,24 +65,26 @@ def _mac_nested_values(pattern: Matrix, filter_matrix: Matrix) -> float:
 
 def flatten_matrix(matrix: object) -> List[float]:
     """검증된 2차원 행렬을 행 우선 1차원 배열로 변환한다."""
-    checked = validate_matrix(matrix)
-    flattened = []  # type: List[float]
-    for row in checked:
-        for value in row:
-            flattened.append(value)
-    return flattened
+    return _flatten_values(validate_matrix(matrix))
+
+
+def _flatten_values(matrix: Matrix) -> List[float]:
+    return [value for row in matrix for value in row]
 
 
 def mac_flat(pattern: object, filter_matrix: object) -> float:
     """1차원 배열을 순차 접근해 동일한 MAC 점수를 계산한다."""
     checked_pattern = validate_matrix(pattern)
     checked_filter = validate_matrix(filter_matrix, len(checked_pattern))
-    flat_pattern = flatten_matrix(checked_pattern)
-    flat_filter = flatten_matrix(checked_filter)
+    flat_pattern = _flatten_values(checked_pattern)
+    flat_filter = _flatten_values(checked_filter)
     return _mac_flat_values(flat_pattern, flat_filter)
 
 
-def _mac_flat_values(pattern: List[float], filter_matrix: List[float]) -> float:
+def _mac_flat_values(
+    pattern: List[float],
+    filter_matrix: List[float],
+) -> float:
     score = 0.0
     for index in range(len(pattern)):
         score += pattern[index] * filter_matrix[index]
@@ -93,12 +95,11 @@ def compare_representations(
     pattern: object, filter_matrix: object, repetitions: int = 10
 ) -> Dict[str, float]:
     """검증·평탄화 시간을 제외하고 2D/1D MAC의 동일 반복 구간을 비교한다."""
-    if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions < 1:
-        raise ValueError("반복 횟수는 1 이상의 정수여야 합니다.")
+    _validate_repetitions(repetitions)
     checked_pattern = validate_matrix(pattern)
     checked_filter = validate_matrix(filter_matrix, len(checked_pattern))
-    flat_pattern = flatten_matrix(checked_pattern)
-    flat_filter = flatten_matrix(checked_filter)
+    flat_pattern = _flatten_values(checked_pattern)
+    flat_filter = _flatten_values(checked_filter)
 
     nested_score = 0.0
     nested_started = time.perf_counter_ns()
@@ -171,7 +172,8 @@ def generate_patterns(size: int) -> Tuple[Matrix, Matrix]:
         x_row = []  # type: List[float]
         for column in range(size):
             cross_row.append(1.0 if row == center or column == center else 0.0)
-            x_row.append(1.0 if row == column or row + column == size - 1 else 0.0)
+            is_diagonal = row == column or row + column == size - 1
+            x_row.append(1.0 if is_diagonal else 0.0)
         cross.append(cross_row)
         x_pattern.append(x_row)
     return cross, x_pattern
@@ -184,8 +186,7 @@ def benchmark_mac(
     repetitions: int = 10,
 ) -> Tuple[float, float]:
     """I/O를 제외하고 MAC 함수 호출 구간의 평균 ms와 마지막 점수를 반환한다."""
-    if isinstance(repetitions, bool) or not isinstance(repetitions, int) or repetitions < 1:
-        raise ValueError("반복 횟수는 1 이상의 정수여야 합니다.")
+    _validate_repetitions(repetitions)
     score = 0.0
     started_at = time.perf_counter_ns()
     for _ in range(repetitions):
@@ -193,3 +194,12 @@ def benchmark_mac(
     elapsed_ns = time.perf_counter_ns() - started_at
     average_ms = elapsed_ns / repetitions / 1_000_000.0
     return average_ms, score
+
+
+def _validate_repetitions(repetitions: int) -> None:
+    if (
+        isinstance(repetitions, bool)
+        or not isinstance(repetitions, int)
+        or repetitions < 1
+    ):
+        raise ValueError("반복 횟수는 1 이상의 정수여야 합니다.")
