@@ -193,8 +193,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    arguments = build_parser().parse_args(argv)
     try:
+        arguments = build_parser().parse_args(argv)
         if arguments.generate is not None:
             print("=== Mini NPU Simulator 패턴 생성기 ===")
             print_generated_patterns(arguments.generate, print)

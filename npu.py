@@ -34,7 +34,10 @@ def validate_matrix(matrix: object, expected_size: int = 0) -> Matrix:
         for value in row:
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise ValueError("행렬 원소는 숫자여야 합니다(bool 제외).")
-            number = float(value)
+            try:
+                number = float(value)
+            except OverflowError as error:
+                raise ValueError("행렬 원소가 float 범위를 벗어났습니다.") from error
             if not math.isfinite(number):
                 raise ValueError("행렬 원소는 유한한 숫자여야 합니다.")
             checked_row.append(number)

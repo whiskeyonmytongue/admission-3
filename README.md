@@ -11,14 +11,15 @@
 | 3·5·13·25 성능 측정 | 각 10회 평균 | JSON 실행 결과의 성능 표 |
 | 1D 메모리 접근 비교 | 완료 | `make bonus` |
 | 홀수 N 패턴 생성 | 완료 | `python3 main.py --generate 5` |
-| 자동 테스트 | 24개 PASS | `make verify` |
-| Python 3.8 문법 | 호환 | `make verify` |
+| 자동 테스트 | 27개 PASS | `make verify` |
+| Python 3.8 실행 | 27개 PASS | 공식 3.8 컨테이너·GitHub Actions |
 
 실행 당시의 전체 출력은 [수동 입력 로그](docs/evidence/logs/manual-mode.txt), [JSON 분석 로그](docs/evidence/logs/json-analysis.txt), [자동 검증 로그](docs/evidence/logs/verification.txt)에 보존했습니다.
 
 ## 바로 실행하기
 
 Python 3.8 이상만 필요하며 NumPy, pandas 같은 외부 패키지는 사용하지 않습니다.
+`.github/workflows/verify.yml`도 Python 3.8과 3.13에서 같은 검증을 반복합니다.
 
 ```bash
 git clone https://github.com/whiskeyonmytongue/admission-3.git
@@ -133,10 +134,16 @@ JSON 분석 흐름은 다음과 같습니다.
 ├── data.json                       # 출처가 표시된 합성 6개 케이스
 ├── tests/                          # 경계·오류·CLI 테스트
 ├── scripts/check_python38.py       # Python 3.8 문법 검사
+├── .github/workflows/verify.yml    # Python 3.8·3.13 실제 실행
 ├── docs/evidence/logs/             # 실제 실행 출력
 └── Makefile                        # 로컬·원격 검증 진입점
 ```
 
 ## 테스트 범위
 
-`make verify`는 unittest 24개, Python 구문 컴파일, Python 3.8 문법 파싱, 합성 데이터 6/6, EOF 안전 종료를 순서대로 확인합니다. 테스트에는 malformed matrix/schema, epsilon 미만 동점, epsilon과 정확히 같은 비동점, 정적 6개 케이스, 메뉴·행 재입력, EOF·Ctrl+C가 포함됩니다.
+`make verify`는 unittest 27개, Python 구문 컴파일, Python 3.8 문법 파싱, 합성
+데이터 6/6, EOF 안전 종료를 순서대로 확인합니다. 로컬에서는 공식
+`python:3.8-slim`의 Python 3.8.20으로 같은 27개 테스트를 다시 통과시켰습니다.
+테스트에는 malformed matrix/schema, float 범위를 넘는 정수, 과도한 JSON 중첩,
+epsilon 미만 동점, epsilon과 정확히 같은 비동점, 정적 6개 케이스, 메뉴·행
+재입력, 인자 파싱·입력 중 Ctrl+C와 EOF가 포함됩니다.

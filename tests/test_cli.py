@@ -56,6 +56,17 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result, 0)
         self.assertIn("안전하게 종료", captured.getvalue())
 
+    def test_argument_parsing_interrupt_exits_without_traceback(self):
+        captured = io.StringIO()
+        with patch("main.build_parser") as parser_builder, patch(
+            "sys.stdout", captured
+        ):
+            parser_builder.return_value.parse_args.side_effect = KeyboardInterrupt
+            result = main.main([])
+
+        self.assertEqual(result, 0)
+        self.assertIn("안전하게 종료", captured.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

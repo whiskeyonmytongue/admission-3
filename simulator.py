@@ -26,7 +26,7 @@ def load_json_file(path: Path) -> Dict[str, Any]:
     try:
         with path.open("r", encoding="utf-8") as source:
             data = json.load(source)
-    except (OSError, json.JSONDecodeError) as error:
+    except (OSError, json.JSONDecodeError, RecursionError) as error:
         raise ValueError("JSON 파일을 읽을 수 없습니다: {0}".format(error))
     if not isinstance(data, dict):
         raise ValueError("JSON 최상위 값은 객체여야 합니다.")
@@ -119,7 +119,7 @@ def analyze_data(data: object) -> Dict[str, Any]:
                 result["reason"] = "epsilon 정책에 따라 동점(UNDECIDED)"
             else:
                 result["reason"] = "판정 {0}, 예상 {1}".format(predicted, expected)
-        except (KeyError, TypeError, ValueError) as error:
+        except (KeyError, TypeError, ValueError, OverflowError) as error:
             result["reason"] = str(error)
         results.append(result)
 

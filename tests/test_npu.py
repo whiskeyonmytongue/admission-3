@@ -41,7 +41,7 @@ class MatrixAndMacTests(unittest.TestCase):
             mac_nested([[1]], [[1, 0], [0, 1]])
 
     def test_invalid_numbers_are_rejected(self):
-        for value in (True, "1", math.nan, math.inf):
+        for value in (True, "1", math.nan, math.inf, 10**10000):
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
                     validate_matrix([[value]])

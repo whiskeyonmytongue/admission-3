@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from npu import generate_patterns
 from simulator import (
@@ -48,6 +49,18 @@ class JsonAnalysisTests(unittest.TestCase):
         self.assertIn("크기 불일치", report["results"][0]["reason"])
         self.assertEqual(report["results"][1]["status"], "PASS")
 
+    def test_huge_integer_only_fails_its_case(self):
+        data = valid_data()
+        huge_input = [row[:] for row in data["patterns"]["size_3_1"]["input"]]
+        huge_input[0][0] = 10**10000
+        data["patterns"]["size_3_1"]["input"] = huge_input
+
+        report = analyze_data(data)
+
+        self.assertEqual((report["total"], report["passed"], report["failed"]), (2, 1, 1))
+        self.assertIn("float 범위", report["results"][0]["reason"])
+        self.assertEqual(report["results"][1]["status"], "PASS")
+
     def test_malformed_schema_is_reported_per_case(self):
         data = valid_data()
         data["patterns"] = {
@@ -80,6 +93,14 @@ class JsonAnalysisTests(unittest.TestCase):
             path.write_text("{", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "읽을 수 없습니다"):
                 load_json_file(path)
+
+    def test_load_json_reports_excessive_nesting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "deep.json"
+            path.write_text("{}", encoding="utf-8")
+            with patch("simulator.json.load", side_effect=RecursionError):
+                with self.assertRaisesRegex(ValueError, "읽을 수 없습니다"):
+                    load_json_file(path)
 
 
 class ExtractionAndPerformanceTests(unittest.TestCase):

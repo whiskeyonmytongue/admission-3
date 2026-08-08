@@ -1,4 +1,5 @@
 python3 -m unittest -v
+test_argument_parsing_interrupt_exits_without_traceback (tests.test_cli.CliTests.test_argument_parsing_interrupt_exits_without_traceback) ... ok
 test_eof_exits_without_traceback (tests.test_cli.CliTests.test_eof_exits_without_traceback) ... ok
 test_generate_rejects_even_size (tests.test_cli.CliTests.test_generate_rejects_even_size) ... ok
 test_invalid_menu_and_row_are_retried (tests.test_cli.CliTests.test_invalid_menu_and_row_are_retried) ... ok
@@ -17,6 +18,8 @@ test_bonus_compares_all_sizes_with_same_repetitions (tests.test_simulator.Extrac
 test_extract_pattern_size (tests.test_simulator.ExtractionAndPerformanceTests.test_extract_pattern_size) ... ok
 test_performance_has_required_sizes_and_repetitions (tests.test_simulator.ExtractionAndPerformanceTests.test_performance_has_required_sizes_and_repetitions) ... ok
 test_bad_case_does_not_stop_following_case (tests.test_simulator.JsonAnalysisTests.test_bad_case_does_not_stop_following_case) ... ok
+test_huge_integer_only_fails_its_case (tests.test_simulator.JsonAnalysisTests.test_huge_integer_only_fails_its_case) ... ok
+test_load_json_reports_excessive_nesting (tests.test_simulator.JsonAnalysisTests.test_load_json_reports_excessive_nesting) ... ok
 test_load_json_reports_parse_error (tests.test_simulator.JsonAnalysisTests.test_load_json_reports_parse_error) ... ok
 test_malformed_schema_is_reported_per_case (tests.test_simulator.JsonAnalysisTests.test_malformed_schema_is_reported_per_case) ... ok
 test_missing_filter_only_fails_related_case (tests.test_simulator.JsonAnalysisTests.test_missing_filter_only_fails_related_case) ... ok
@@ -25,7 +28,7 @@ test_static_data_contains_six_passing_cases (tests.test_simulator.JsonAnalysisTe
 test_valid_cases_pass_with_normalized_labels (tests.test_simulator.JsonAnalysisTests.test_valid_cases_pass_with_normalized_labels) ... ok
 
 ----------------------------------------------------------------------
-Ran 24 tests in 0.006s
+Ran 27 tests in 0.007s
 
 OK
 python3 -m py_compile main.py npu.py simulator.py tests/*.py scripts/*.py
@@ -35,3 +38,17 @@ python3 -c 'from pathlib import Path; from simulator import analyze_data, load_j
 [PASS] data.json 6/6
 [PASS] EOF 안전 종료
 [PASS] 로컬 필수·보너스 검증 완료
+
+$ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
+    -v "$PWD:/work:ro" -w /work python:3.8-slim sh -c \
+    'python --version && python -m unittest -v && \
+     python -m py_compile main.py npu.py simulator.py tests/*.py scripts/*.py && \
+     python scripts/check_python38.py && \
+     python -c '\''from pathlib import Path; from simulator import analyze_data, load_json_file; r = analyze_data(load_json_file(Path("data.json"))); assert (r["total"], r["passed"], r["failed"]) == (6, 6, 0)'\'' && \
+     printf "" | python main.py | grep -q "안전하게 종료"'
+Python 3.8.20
+Ran 27 tests in 0.011s
+OK
+[PASS] Python 3.8 문법 호환
+[PASS] Python 3.8 data.json 6/6
+[PASS] Python 3.8 EOF 안전 종료
