@@ -1,5 +1,7 @@
 # Mini NPU Simulator
 
+[![verify](https://github.com/whiskeyonmytongue/admission-3/actions/workflows/verify.yml/badge.svg)](https://github.com/whiskeyonmytongue/admission-3/actions/workflows/verify.yml)
+
 외부 라이브러리 없이 반복문으로 MAC(Multiply–Accumulate) 연산을 구현하고, Cross와 X 패턴을 판별하는 Python 콘솔 애플리케이션입니다. 3×3 직접 입력과 `data.json` 일괄 분석을 지원하며, 잘못된 JSON 케이스는 다른 케이스의 실행을 막지 않습니다.
 
 ## 구현 결과
