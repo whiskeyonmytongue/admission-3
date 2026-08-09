@@ -146,6 +146,25 @@ class JsonAnalysisTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "허용 범위"):
                 load_json_file(path)
 
+    def test_oversized_nested_non_matrix_field_is_rejected(self):
+        huge_integer = "9" * 5000
+        documents = (
+            '{"filters":{},"patterns":{"size_1_1":{'
+            '"input":[[1]],"expected":"cross","note":'
+            + huge_integer
+            + "}}}",
+            '{"filters":{"_meta":{"note":'
+            + huge_integer
+            + '}},"patterns":{}}',
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            for index, document in enumerate(documents):
+                with self.subTest(index=index):
+                    path = Path(directory) / "nested-{0}.json".format(index)
+                    path.write_text(document, encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "행렬 필드 밖"):
+                        load_json_file(path)
+
     def test_malformed_schema_is_reported_per_case(self):
         data = valid_data()
         data["patterns"] = {

@@ -1,11 +1,11 @@
-$ make verify
+$ make syntax style test json-check cli-check
 PYTHONDONTWRITEBYTECODE=1 python3 -m py_compile \
 	main.py npu.py simulator.py scripts/check_data.py \
-	scripts/check_style.py \
+	scripts/check_runtime.py scripts/check_style.py \
 	tests/test_cli.py tests/test_npu.py tests/test_simulator.py \
 	tests/test_style.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_style.py
-Style check: PASS (11 files, Python 3.8+)
+Style check: PASS (12 files, Python 3.8+)
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
 test_argument_parsing_interrupt_exits_without_traceback (test_cli.CliTests.test_argument_parsing_interrupt_exits_without_traceback) ... ok
 test_eof_exits_without_traceback (test_cli.CliTests.test_eof_exits_without_traceback) ... ok
@@ -43,6 +43,7 @@ test_load_json_reports_parse_error (test_simulator.JsonAnalysisTests.test_load_j
 test_malformed_schema_is_reported_per_case (test_simulator.JsonAnalysisTests.test_malformed_schema_is_reported_per_case) ... ok
 test_missing_filter_only_fails_related_case (test_simulator.JsonAnalysisTests.test_missing_filter_only_fails_related_case) ... ok
 test_oversized_metadata_integer_is_rejected (test_simulator.JsonAnalysisTests.test_oversized_metadata_integer_is_rejected) ... ok
+test_oversized_nested_non_matrix_field_is_rejected (test_simulator.JsonAnalysisTests.test_oversized_nested_non_matrix_field_is_rejected) ... ok
 test_patterns_must_be_mapping (test_simulator.JsonAnalysisTests.test_patterns_must_be_mapping) ... ok
 test_static_data_contains_six_passing_cases (test_simulator.JsonAnalysisTests.test_static_data_contains_six_passing_cases) ... ok
 test_valid_cases_pass_with_normalized_labels (test_simulator.JsonAnalysisTests.test_valid_cases_pass_with_normalized_labels) ... ok
@@ -51,14 +52,16 @@ test_control_flow_string_is_not_a_docstring (test_style.StyleCheckerTests.test_c
 test_crlf_reports_its_actual_line (test_style.StyleCheckerTests.test_crlf_reports_its_actual_line) ... ok
 test_empty_discovery_returns_failure (test_style.StyleCheckerTests.test_empty_discovery_returns_failure) ... ok
 test_function_length_includes_decorator (test_style.StyleCheckerTests.test_function_length_includes_decorator) ... ok
+test_git_filename_uses_filesystem_decoding (test_style.StyleCheckerTests.test_git_filename_uses_filesystem_decoding) ... ok
 test_indent_check_allows_alignment_but_rejects_wide_suite (test_style.StyleCheckerTests.test_indent_check_allows_alignment_but_rejects_wide_suite) ... ok
 test_inline_comment_uses_code_line_limit (test_style.StyleCheckerTests.test_inline_comment_uses_code_line_limit) ... ok
 test_invalid_utf8_reports_line_number (test_style.StyleCheckerTests.test_invalid_utf8_reports_line_number) ... ok
 test_overlong_line_returns_failure_with_location (test_style.StyleCheckerTests.test_overlong_line_returns_failure_with_location) ... ok
+test_runtime_check_requires_exact_minor (test_style.StyleCheckerTests.test_runtime_check_requires_exact_minor) ... ok
 test_valid_nested_async_context_is_not_rejected (test_style.StyleCheckerTests.test_valid_nested_async_context_is_not_rejected) ... ok
 
 ----------------------------------------------------------------------
-Ran 49 tests in 0.045s
+Ran 52 tests in 0.044s
 
 OK
 [PASS] data.json 6/6
@@ -67,25 +70,23 @@ OK
 
 $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
     -v "$PWD:/work:ro" -w /work python:3.8-slim sh -c \
-    'python --version && \
-     python -m py_compile main.py npu.py simulator.py \
-       scripts/check_data.py scripts/check_style.py \
-       tests/test_cli.py tests/test_npu.py tests/test_simulator.py \
-       tests/test_style.py && \
-     python scripts/check_style.py && \
-     python -m unittest discover -s tests -v && \
-     python -m scripts.check_data && \
-     task_output=$(mktemp) && \
-     printf "" | python main.py >"$task_output" && \
-     grep -q "안전하게 종료" "$task_output" && \
-     echo "[PASS] Python 3.8 EOF 안전 종료"'
+    'apt-get update -qq && \
+     apt-get install -y -qq make >/dev/null && \
+     make verify PYTHON=python'
 [컨테이너 출력 요약]
-Python 3.8.20
-Style check: PASS (11 files, Python 3.8+)
-Ran 49 tests in 0.046s
+Runtime check: PASS (Python 3.8)
+Style check: PASS (12 files, Python 3.8+)
+Ran 52 tests in 0.057s
 OK
 [PASS] data.json 6/6
-[PASS] Python 3.8 EOF 안전 종료
+[PASS] EOF 안전 종료
+[PASS] 로컬 필수·보너스 검증 완료
+
+$ make verify
+Runtime check: FAIL - make verify는 Python 3.8이 필요합니다. 현재 버전: 3.13
+make: *** [runtime] Error 1
+
+위 실패는 검증 버전 guard가 현재 Python 3.13을 의도대로 거부한 결과다.
 
 [이전 공개 기준선 b61f468의 원격 검증 기록 — 현재 로컬 보강은 push 전]
 

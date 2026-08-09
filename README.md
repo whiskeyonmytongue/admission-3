@@ -13,8 +13,8 @@
 | 3·5·13·25 성능 측정 | 각 10회 평균 | JSON 실행 결과의 성능 표 |
 | 1D 메모리 접근 비교 | 완료 | `make bonus` |
 | 홀수 N 패턴 생성 | 완료 | `python3 main.py --generate 5` |
-| 자동 테스트 | 49개 PASS | `make verify` |
-| Python 3.8 실행 | 49개 PASS | 로컬 공식 3.8 컨테이너 |
+| 자동 테스트 | 52개 PASS | `make verify PYTHON=python3.8` |
+| Python 3.8 실행 | 52개 PASS | 로컬 공식 3.8 컨테이너 |
 | Python 스타일 | PASS | `make style` |
 
 실행 당시의 전체 출력은 [수동 입력 로그](docs/evidence/logs/manual-mode.txt), [JSON 분석 로그](docs/evidence/logs/json-analysis.txt), [자동 검증 로그](docs/evidence/logs/verification.txt)에 보존했습니다.
@@ -22,12 +22,12 @@
 ## 바로 실행하기
 
 Python 3.8 이상만 필요하며 NumPy, pandas 같은 외부 패키지는 사용하지 않습니다.
-`.github/workflows/verify.yml`도 Python 3.8과 3.13에서 같은 검증을 반복합니다.
+제출 검증은 정확한 최소 버전을 증명하기 위해 Python 3.8에서 실행합니다.
 
 ```bash
 git clone https://github.com/whiskeyonmytongue/admission-3.git
 cd admission-3
-make verify
+make verify PYTHON=python3.8
 ```
 
 직접 3×3 필터와 패턴을 입력하려면 다음 명령을 실행한 뒤 `1`을 선택합니다. 각 행에는 숫자 3개를 공백으로 구분해 입력합니다. 열 수가 다르거나 숫자가 아니면 그 행부터 다시 입력받습니다.
@@ -52,7 +52,7 @@ make bonus
 원격 저장소가 연결된 뒤 공개 여부, 기본 브랜치, 로컬·원격 HEAD까지 확인하는 명령은 다음과 같습니다.
 
 ```bash
-make verify-remote
+make verify-remote PYTHON=python3.8
 ```
 
 ## 데이터 출처
@@ -139,21 +139,22 @@ JSON 분석 흐름은 다음과 같습니다.
 ├── tests/                          # 경계·오류·CLI 테스트
 ├── scripts/check_data.py           # 합성 JSON 6/6 검증
 ├── scripts/check_style.py          # PEP 8·257·Python 3.8 스타일 검사
-├── .github/workflows/verify.yml    # Python 3.8·3.13 실제 실행
+├── .github/workflows/verify.yml    # Python 3.8 실제 실행
 ├── docs/evidence/logs/             # 실제 실행 출력
 └── Makefile                        # 로컬·원격 검증 진입점
 ```
 
 ## 테스트 범위
 
-`make verify`는 Python 구문 컴파일, PEP 8·257 기반 공통 스타일 규칙,
-unittest 49개, 합성 데이터 6/6, EOF 안전 종료를 순서대로 확인합니다. 스타일
+`make verify PYTHON=python3.8`은 정확히 Python 3.8에서 구문 컴파일,
+PEP 8·257 기반 공통 스타일 규칙,
+unittest 52개, 합성 데이터 6/6, EOF 안전 종료를 순서대로 확인합니다. 스타일
 검사는 UTF-8·LF·마지막 개행·공백·줄 길이(코드 79자, 주석과 docstring
 72자)·공개 API docstring·50줄 초과 함수·Python 3.8 AST 문법과 현재 Python의
-컴파일 문맥을 표준 라이브러리만 사용해 검사합니다. 최소 버전의 실제 컴파일과
-실행은 GitHub Actions와 공식 Python 3.8 컨테이너에서 다시 확인합니다.
+컴파일 문맥을 표준 라이브러리만 사용해 검사합니다. GitHub Actions도 Python
+3.8에서 같은 명령을 실행하므로 로컬 AST와 실제 컴파일 기준이 일치합니다.
 
-로컬에서는 공식 `python:3.8-slim`의 Python 3.8.20으로 같은 49개 테스트를
+로컬에서는 공식 `python:3.8-slim`의 Python 3.8.20으로 같은 52개 테스트를
 다시 통과시켰습니다. 테스트에는 malformed matrix/schema, 잘못된 최상위
 `filters`, float 범위를 넘는 정수, NaN·무한대 행 재입력, 과도한 JSON 중첩,
 epsilon 경계, 정적 6개 케이스, 전체 `--json` 성공·실패·누락 경계, 메뉴·행

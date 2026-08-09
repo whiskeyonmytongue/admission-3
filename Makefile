@@ -1,17 +1,20 @@
 PYTHON ?= python3
 
-.PHONY: all verify syntax style test json-check cli-check run bonus clean
+.PHONY: all verify runtime syntax style test json-check cli-check run bonus clean
 .PHONY: verify-remote
 
 all: verify
 
-verify: syntax style test json-check cli-check
+verify: runtime syntax style test json-check cli-check
 	@echo "[PASS] 로컬 필수·보너스 검증 완료"
+
+runtime:
+	@$(PYTHON) scripts/check_runtime.py
 
 syntax:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m py_compile \
 		main.py npu.py simulator.py scripts/check_data.py \
-		scripts/check_style.py \
+		scripts/check_runtime.py scripts/check_style.py \
 		tests/test_cli.py tests/test_npu.py tests/test_simulator.py \
 		tests/test_style.py
 

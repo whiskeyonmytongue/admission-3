@@ -19,6 +19,7 @@ from npu import (
 
 
 PATTERN_KEY = re.compile(r"^size_(\d+)_(.+)$")
+FILTER_KEY = re.compile(r"^size_(\d+)$")
 PERFORMANCE_SIZES = (3, 5, 13, 25)
 MAX_PARSED_INTEGER_DIGITS = 640
 
@@ -39,33 +40,58 @@ def _parse_json_integer(raw_value: str) -> object:
     return int(raw_value)
 
 
-def _normalize_oversized_in_payload(value: object) -> object:
+def _normalize_oversized_matrix(value: object) -> object:
     if isinstance(value, _OversizedJsonInteger):
         if value.negative:
             return -_FLOAT_OVERFLOW_SENTINEL
         return _FLOAT_OVERFLOW_SENTINEL
     if isinstance(value, list):
-        return [_normalize_oversized_in_payload(item) for item in value]
+        return [_normalize_oversized_matrix(item) for item in value]
     if isinstance(value, dict):
         return {
-            key: _normalize_oversized_in_payload(item)
+            key: _normalize_oversized_matrix(item)
             for key, item in value.items()
         }
     return value
 
 
-def _normalize_loaded_data(data: Dict[str, Any]) -> Dict[str, Any]:
-    normalized = {}  # type: Dict[str, Any]
-    for key, value in data.items():
-        if key in ("filters", "patterns"):
-            normalized[key] = _normalize_oversized_in_payload(value)
-        elif _contains_oversized_integer(value):
-            raise ValueError(
-                "filters/patterns 밖의 JSON 정수가 허용 범위를 벗어났습니다."
+def _normalize_filter_matrices(raw_filters: object) -> None:
+    if not isinstance(raw_filters, dict):
+        return
+    for size_key, raw_filter_set in raw_filters.items():
+        if (
+            not isinstance(size_key, str)
+            or FILTER_KEY.fullmatch(size_key) is None
+        ):
+            continue
+        if not isinstance(raw_filter_set, dict):
+            continue
+        for raw_label, matrix in raw_filter_set.items():
+            try:
+                normalize_label(raw_label)
+            except ValueError:
+                continue
+            raw_filter_set[raw_label] = _normalize_oversized_matrix(matrix)
+
+
+def _normalize_pattern_matrices(raw_patterns: object) -> None:
+    if not isinstance(raw_patterns, dict):
+        return
+    for raw_case in raw_patterns.values():
+        if isinstance(raw_case, dict) and "input" in raw_case:
+            raw_case["input"] = _normalize_oversized_matrix(
+                raw_case["input"]
             )
-        else:
-            normalized[key] = value
-    return normalized
+
+
+def _normalize_loaded_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    _normalize_filter_matrices(data.get("filters"))
+    _normalize_pattern_matrices(data.get("patterns"))
+    if _contains_oversized_integer(data):
+        raise ValueError(
+            "행렬 필드 밖의 JSON 정수가 허용 범위를 벗어났습니다."
+        )
+    return data
 
 
 def _contains_oversized_integer(value: object) -> bool:

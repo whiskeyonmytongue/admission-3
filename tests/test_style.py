@@ -1,13 +1,42 @@
 """표준 라이브러리 스타일 검사기의 성공·실패 경계를 검증한다."""
 
 import io
+import os
 import unittest
 from unittest.mock import patch
 
-from scripts import check_style
+from scripts import check_runtime, check_style
 
 
 class StyleCheckerTests(unittest.TestCase):
+    def test_runtime_check_requires_exact_minor(self):
+        captured_output = io.StringIO()
+        captured_error = io.StringIO()
+        with patch.object(
+            check_runtime,
+            "current_version",
+            return_value=(3, 8),
+        ), patch("sys.stdout", captured_output):
+            self.assertEqual(check_runtime.main(), 0)
+        with patch.object(
+            check_runtime,
+            "current_version",
+            return_value=(3, 13),
+        ), patch("sys.stderr", captured_error):
+            self.assertEqual(check_runtime.main(), 1)
+
+        self.assertIn("Python 3.8", captured_error.getvalue())
+
+    def test_git_filename_uses_filesystem_decoding(self):
+        raw_name = b"invalid-\xff.py"
+        with patch(
+            "scripts.check_style.subprocess.check_output",
+            return_value=raw_name + b"\0",
+        ), patch("pathlib.Path.exists", return_value=True):
+            paths = check_style.source_paths()
+
+        self.assertEqual(os.fsencode(paths[0].name), raw_name)
+
     def test_overlong_line_returns_failure_with_location(self):
         path = check_style.ROOT / "probe.py"
         source = '"""Temporary style probe."""\n\nprobe = "{0}"\n'.format(
