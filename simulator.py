@@ -20,19 +20,65 @@ from npu import (
 
 PATTERN_KEY = re.compile(r"^size_(\d+)_(.+)$")
 PERFORMANCE_SIZES = (3, 5, 13, 25)
-MAX_FLOAT_INTEGER_DIGITS = 309
+MAX_PARSED_INTEGER_DIGITS = 640
 
 
-_OVERSIZED_JSON_INTEGER = 10 ** 400
+_FLOAT_OVERFLOW_SENTINEL = 10 ** 400
+
+
+class _OversizedJsonInteger:
+    def __init__(self, negative: bool) -> None:
+        """부호만 보존하는 과도하게 큰 JSON 정수 표식을 만든다."""
+        self.negative = negative
 
 
 def _parse_json_integer(raw_value: str) -> object:
     digits = raw_value[1:] if raw_value.startswith("-") else raw_value
-    if len(digits) > MAX_FLOAT_INTEGER_DIGITS:
-        if raw_value.startswith("-"):
-            return -_OVERSIZED_JSON_INTEGER
-        return _OVERSIZED_JSON_INTEGER
+    if len(digits) > MAX_PARSED_INTEGER_DIGITS:
+        return _OversizedJsonInteger(raw_value.startswith("-"))
     return int(raw_value)
+
+
+def _normalize_oversized_in_payload(value: object) -> object:
+    if isinstance(value, _OversizedJsonInteger):
+        if value.negative:
+            return -_FLOAT_OVERFLOW_SENTINEL
+        return _FLOAT_OVERFLOW_SENTINEL
+    if isinstance(value, list):
+        return [_normalize_oversized_in_payload(item) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: _normalize_oversized_in_payload(item)
+            for key, item in value.items()
+        }
+    return value
+
+
+def _normalize_loaded_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    normalized = {}  # type: Dict[str, Any]
+    for key, value in data.items():
+        if key in ("filters", "patterns"):
+            normalized[key] = _normalize_oversized_in_payload(value)
+        elif _contains_oversized_integer(value):
+            raise ValueError(
+                "filters/patterns 밖의 JSON 정수가 허용 범위를 벗어났습니다."
+            )
+        else:
+            normalized[key] = value
+    return normalized
+
+
+def _contains_oversized_integer(value: object) -> bool:
+    if isinstance(value, _OversizedJsonInteger):
+        return True
+    if isinstance(value, list):
+        return any(_contains_oversized_integer(item) for item in value)
+    if isinstance(value, dict):
+        return any(
+            _contains_oversized_integer(item)
+            for item in value.values()
+        )
+    return False
 
 
 def load_json_file(path: Path) -> Dict[str, Any]:
@@ -44,7 +90,10 @@ def load_json_file(path: Path) -> Dict[str, Any]:
         raise ValueError("JSON 파일을 읽을 수 없습니다: {0}".format(error))
     if not isinstance(data, dict):
         raise ValueError("JSON 최상위 값은 객체여야 합니다.")
-    return data
+    try:
+        return _normalize_loaded_data(data)
+    except RecursionError as error:
+        raise ValueError("JSON 구조가 지나치게 깊습니다.") from error
 
 
 def extract_pattern_size(case_id: object) -> int:

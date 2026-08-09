@@ -37,11 +37,12 @@ test_bad_case_does_not_stop_following_case (test_simulator.JsonAnalysisTests.tes
 test_file_huge_integer_only_fails_its_case (test_simulator.JsonAnalysisTests.test_file_huge_integer_only_fails_its_case) ... ok
 test_filters_must_be_mapping (test_simulator.JsonAnalysisTests.test_filters_must_be_mapping) ... ok
 test_huge_integer_only_fails_its_case (test_simulator.JsonAnalysisTests.test_huge_integer_only_fails_its_case) ... ok
-test_huge_json_integer_is_stable_and_json_safe (test_simulator.JsonAnalysisTests.test_huge_json_integer_is_stable_and_json_safe) ... ok
+test_large_metadata_integer_is_preserved_exactly (test_simulator.JsonAnalysisTests.test_large_metadata_integer_is_preserved_exactly) ... ok
 test_load_json_reports_excessive_nesting (test_simulator.JsonAnalysisTests.test_load_json_reports_excessive_nesting) ... ok
 test_load_json_reports_parse_error (test_simulator.JsonAnalysisTests.test_load_json_reports_parse_error) ... ok
 test_malformed_schema_is_reported_per_case (test_simulator.JsonAnalysisTests.test_malformed_schema_is_reported_per_case) ... ok
 test_missing_filter_only_fails_related_case (test_simulator.JsonAnalysisTests.test_missing_filter_only_fails_related_case) ... ok
+test_oversized_metadata_integer_is_rejected (test_simulator.JsonAnalysisTests.test_oversized_metadata_integer_is_rejected) ... ok
 test_patterns_must_be_mapping (test_simulator.JsonAnalysisTests.test_patterns_must_be_mapping) ... ok
 test_static_data_contains_six_passing_cases (test_simulator.JsonAnalysisTests.test_static_data_contains_six_passing_cases) ... ok
 test_valid_cases_pass_with_normalized_labels (test_simulator.JsonAnalysisTests.test_valid_cases_pass_with_normalized_labels) ... ok
@@ -54,11 +55,10 @@ test_indent_check_allows_alignment_but_rejects_wide_suite (test_style.StyleCheck
 test_inline_comment_uses_code_line_limit (test_style.StyleCheckerTests.test_inline_comment_uses_code_line_limit) ... ok
 test_invalid_utf8_reports_line_number (test_style.StyleCheckerTests.test_invalid_utf8_reports_line_number) ... ok
 test_overlong_line_returns_failure_with_location (test_style.StyleCheckerTests.test_overlong_line_returns_failure_with_location) ... ok
-test_target_context_matches_legacy_comprehension_scope (test_style.StyleCheckerTests.test_target_context_matches_legacy_comprehension_scope) ... ok
-test_target_version_nested_async_context_fails (test_style.StyleCheckerTests.test_target_version_nested_async_context_fails) ... ok
+test_valid_nested_async_context_is_not_rejected (test_style.StyleCheckerTests.test_valid_nested_async_context_is_not_rejected) ... ok
 
 ----------------------------------------------------------------------
-Ran 49 tests in 0.043s
+Ran 49 tests in 0.045s
 
 OK
 [PASS] data.json 6/6
@@ -82,7 +82,7 @@ $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
 [컨테이너 출력 요약]
 Python 3.8.20
 Style check: PASS (11 files, Python 3.8+)
-Ran 49 tests in 0.043s
+Ran 49 tests in 0.046s
 OK
 [PASS] data.json 6/6
 [PASS] Python 3.8 EOF 안전 종료

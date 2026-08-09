@@ -91,32 +91,9 @@ class JsonAnalysisTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "huge.json"
             path.write_text(document, encoding="utf-8")
-            report = analyze_data(load_json_file(path))
-
-        self.assertEqual(
-            (report["total"], report["passed"], report["failed"]),
-            (2, 1, 1),
-        )
-        self.assertIn("float 범위", report["results"][0]["reason"])
-        self.assertEqual(report["results"][1]["status"], "PASS")
-
-    def test_huge_json_integer_is_stable_and_json_safe(self):
-        huge_integer = "9" * 5000
-        document = (
-            '{"filters":{"size_2":{"cross":[[1,0],[0,1]],'
-            '"x":[[0,1],[1,0]]}},"patterns":{'
-            '"size_2_bad":{"input":[['
-            + huge_integer
-            + ']],"expected":"cross"}},"_meta":{"n":'
-            + huge_integer
-            + "}}"
-        )
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "huge-metadata.json"
-            path.write_text(document, encoding="utf-8")
-            data = load_json_file(path)
-            default_reason = analyze_data(data)["results"][0]["reason"]
-            json.dumps(data)
+            default_reason = analyze_data(
+                load_json_file(path)
+            )["results"][0]["reason"]
             setter = getattr(sys, "set_int_max_str_digits", None)
             getter = getattr(sys, "get_int_max_str_digits", None)
             if setter is not None and getter is not None:
@@ -130,8 +107,44 @@ class JsonAnalysisTests(unittest.TestCase):
                     setter(previous_limit)
                 self.assertEqual(unlimited_reason, default_reason)
 
-        self.assertIsInstance(data["_meta"]["n"], int)
-        self.assertIn("크기 불일치", default_reason)
+            report = analyze_data(load_json_file(path))
+
+        self.assertEqual(
+            (report["total"], report["passed"], report["failed"]),
+            (2, 1, 1),
+        )
+        self.assertIn("float 범위", report["results"][0]["reason"])
+        self.assertEqual(report["results"][1]["status"], "PASS")
+
+    def test_large_metadata_integer_is_preserved_exactly(self):
+        positive = "9" * 310
+        negative = "-" + "8" * 310
+        document = (
+            '{"filters":{},"patterns":{},"_meta":{"positive":'
+            + positive
+            + ',"negative":'
+            + negative
+            + "}}"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "large-metadata.json"
+            path.write_text(document, encoding="utf-8")
+            data = load_json_file(path)
+            json.dumps(data)
+
+        self.assertEqual(data["_meta"]["positive"], int(positive))
+        self.assertEqual(data["_meta"]["negative"], int(negative))
+
+    def test_oversized_metadata_integer_is_rejected(self):
+        document = '{"filters":{},"patterns":{},"_meta":{"n":' + (
+            "9" * 5000
+        ) + "}}"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "oversized-metadata.json"
+            path.write_text(document, encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "허용 범위"):
+                load_json_file(path)
 
     def test_malformed_schema_is_reported_per_case(self):
         data = valid_data()

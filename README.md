@@ -149,8 +149,9 @@ JSON 분석 흐름은 다음과 같습니다.
 `make verify`는 Python 구문 컴파일, PEP 8·257 기반 공통 스타일 규칙,
 unittest 49개, 합성 데이터 6/6, EOF 안전 종료를 순서대로 확인합니다. 스타일
 검사는 UTF-8·LF·마지막 개행·공백·줄 길이(코드 79자, 주석과 docstring
-72자)·공개 API docstring·50줄 초과 함수·Python 3.8 AST와 컴파일 문맥을 표준
-라이브러리만 사용해 검사합니다.
+72자)·공개 API docstring·50줄 초과 함수·Python 3.8 AST 문법과 현재 Python의
+컴파일 문맥을 표준 라이브러리만 사용해 검사합니다. 최소 버전의 실제 컴파일과
+실행은 GitHub Actions와 공식 Python 3.8 컨테이너에서 다시 확인합니다.
 
 로컬에서는 공식 `python:3.8-slim`의 Python 3.8.20으로 같은 49개 테스트를
 다시 통과시켰습니다. 테스트에는 malformed matrix/schema, 잘못된 최상위
