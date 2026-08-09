@@ -6,7 +6,7 @@ import re
 import sys
 import unicodedata
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from npu import (
     EPSILON,
@@ -31,21 +31,36 @@ _FLOAT_OVERFLOW_SENTINEL = 10 ** 400
 
 
 def reject_control_characters(label: str, value: str) -> None:
-    """터미널 출력을 바꿀 수 있는 Unicode 제어문자를 거부한다."""
-    if any(unicodedata.category(character) == "Cc" for character in value):
+    """터미널 제어 문자와 UTF-8로 출력할 수 없는 surrogate를 거부한다."""
+    unsafe_categories = {"Cc", "Cs"}
+    if any(
+        unicodedata.category(character) in unsafe_categories
+        for character in value
+    ):
         raise ValueError(
-            "{0}에 제어 문자를 사용할 수 없습니다.".format(label)
+            "{0}에 제어 문자 또는 잘못된 Unicode를 사용할 수 없습니다.".format(
+                label
+            )
         )
+
+
+class _InvalidJsonObject:
+    def __init__(self, reason: str) -> None:
+        """객체 단위 JSON 오류를 케이스 분석 단계까지 보존한다."""
+        self.reason = reason
 
 
 def _unique_json_object(
     pairs: List[Tuple[str, Any]],
-) -> Dict[str, Any]:
+) -> object:
     result = {}  # type: Dict[str, Any]
     for key, value in pairs:
-        reject_control_characters("JSON 객체 키", key)
+        try:
+            reject_control_characters("JSON 객체 키", key)
+        except ValueError as error:
+            return _InvalidJsonObject(str(error))
         if key in result:
-            raise ValueError("중복 JSON 키: {0!r}".format(key))
+            return _InvalidJsonObject("중복 JSON 키: {0!r}".format(key))
         result[key] = value
     return result
 
@@ -115,11 +130,34 @@ def _normalize_loaded_data(data: Dict[str, Any]) -> Dict[str, Any]:
         for key, value in data.items()
         if key != "patterns"
     }
+    invalid_reason = _invalid_json_reason(global_data)
+    if invalid_reason is not None:
+        raise ValueError(invalid_reason)
     if _contains_out_of_range_number(global_data):
         raise ValueError(
             "전역 JSON 숫자가 허용 범위를 벗어났습니다."
         )
     return data
+
+
+def _invalid_json_reason(value: object) -> Optional[str]:
+    pending = [value]
+    visited = set()
+    while pending:
+        current = pending.pop()
+        if isinstance(current, _InvalidJsonObject):
+            return current.reason
+        if not isinstance(current, (list, dict)):
+            continue
+        identity = id(current)
+        if identity in visited:
+            continue
+        visited.add(identity)
+        if isinstance(current, list):
+            pending.extend(current)
+        else:
+            pending.extend(current.values())
+    return None
 
 
 def _contains_out_of_range_number(value: object) -> bool:
@@ -155,6 +193,8 @@ def load_json_file(path: Path) -> Dict[str, Any]:
             )
     except (OSError, ValueError, RecursionError) as error:
         raise ValueError("JSON 파일을 읽을 수 없습니다: {0}".format(error))
+    if isinstance(data, _InvalidJsonObject):
+        raise ValueError("JSON 파일을 읽을 수 없습니다: {0}".format(data.reason))
     if not isinstance(data, dict):
         raise ValueError("JSON 최상위 값은 객체여야 합니다.")
     try:
@@ -187,6 +227,9 @@ def _normalized_filters(
     raw_filter_set: object,
     size: int,
 ) -> Dict[str, object]:
+    invalid_reason = _invalid_json_reason(raw_filter_set)
+    if invalid_reason is not None:
+        raise ValueError(invalid_reason)
     if not isinstance(raw_filter_set, dict):
         raise ValueError("size_{0} 필터는 객체여야 합니다.".format(size))
     normalized = {}  # type: Dict[str, object]
@@ -219,6 +262,9 @@ def _case_matrices(
     raw_filters: Dict[str, object],
 ) -> Tuple[Matrix, Matrix, Matrix, str]:
     size = extract_pattern_size(case_id)
+    invalid_reason = _invalid_json_reason(raw_case)
+    if invalid_reason is not None:
+        raise ValueError(invalid_reason)
     if not isinstance(raw_case, dict):
         raise ValueError("패턴 항목은 객체여야 합니다.")
     if _contains_out_of_range_number(raw_case):
@@ -291,6 +337,8 @@ def analyze_data(data: object) -> Dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError("분석 데이터는 객체여야 합니다.")
     raw_patterns = data.get("patterns")
+    if isinstance(raw_patterns, _InvalidJsonObject):
+        raise ValueError(raw_patterns.reason)
     if not isinstance(raw_patterns, dict):
         raise ValueError("patterns는 객체여야 합니다.")
     raw_filters = data.get("filters")

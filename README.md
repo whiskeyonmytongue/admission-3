@@ -13,8 +13,8 @@
 | 3·5·13·25 성능 측정 | 각 10회 평균 | JSON 실행 결과의 성능 표 |
 | 1D 메모리 접근 비교 | 완료 | `make bonus` |
 | 홀수 N 패턴 생성 | 완료 | `python3 main.py --generate 5` |
-| 자동 테스트 | 72개 PASS | `make verify PYTHON=python3.8` |
-| Python 3.8·3.14 실행 | 각각 72개 PASS | 공식 Python 컨테이너 |
+| 자동 테스트 | 74개 PASS | `make verify PYTHON=python3.8` |
+| Python 3.8·3.14 실행 | 각각 74개 PASS | 공식 Python 컨테이너 |
 | Python 스타일 | PASS | `make style` |
 
 주요 실행 결과와 검증 환경은 [수동 입력 로그](docs/evidence/logs/manual-mode.txt), [JSON 분석 로그](docs/evidence/logs/json-analysis.txt), [자동 검증 로그](docs/evidence/logs/verification.txt)에 보존했습니다.
@@ -121,8 +121,9 @@ JSON 분석 흐름은 다음과 같습니다.
 | 수동 입력의 열 수·숫자 오류 | 해당 행 재입력 |
 | EOF 또는 Ctrl+C | 직접 호출을 포함해 traceback 없이 종료 코드 0 |
 | JSON 문법·최상위 스키마 오류 | 원인을 출력하고 종료 코드 1 |
-| 중복 JSON 키 | 임의의 값을 선택하지 않고 오류로 처리 |
-| JSON 키·경로의 터미널 제어 문자 | 출력 전에 거부해 터미널 조작 방지 |
+| 패턴 케이스 안의 중복 JSON 키 | 해당 케이스만 FAIL, 다음 케이스 계속 실행 |
+| 전역 객체의 중복 JSON 키 | 임의의 값을 선택하지 않고 종료 코드 1 |
+| JSON 키·경로의 위험 문자 | 제어 문자·Unicode surrogate를 출력 전에 거부 |
 | `filters`가 객체가 아님 | `filters는 객체여야 합니다`로 원인 명시 |
 | 빈 `patterns` | 처리할 케이스가 없음을 알리고 종료 코드 1 |
 | JSON `NaN`·`Infinity`·float overflow | 비유한 숫자로 처리하지 않고 오류 또는 해당 케이스 FAIL |
@@ -153,18 +154,18 @@ JSON 분석 흐름은 다음과 같습니다.
 ## 테스트 범위
 
 `make verify PYTHON=python3.8`은 정확히 Python 3.8에서 전체 Python 파일의
-구문 컴파일, 과제에 적용한 PEP 8·257 핵심 규칙, unittest 72개, 합성 데이터
+구문 컴파일, 과제에 적용한 PEP 8·257 핵심 규칙, unittest 74개, 합성 데이터
 6/6, EOF 안전 종료를 순서대로 확인합니다. 스타일 검사는 UTF-8·LF·마지막
 개행·공백·최상위 정의 사이 두 줄·줄 길이(코드 79자, 주석과 docstring
 72자)·공개 API docstring·50줄 초과 함수·Python 3.8 AST 문법과 현재 Python의
 컴파일 문맥을 표준 라이브러리만 사용해 검사합니다.
 
-로컬에서는 공식 `python:3.8-slim`과 `python:3.14-slim`에서 같은 72개
+로컬에서는 공식 `python:3.8-slim`과 `python:3.14-slim`에서 같은 74개
 테스트를 통과시켰습니다. GitHub Actions도 고정된 commit SHA의 Action을
 사용해 Python 3.8 최소 버전 전체 검증과 Python 3.14 호환성 검증을 나눠
 실행합니다. 테스트에는 malformed matrix/schema, 빈 데이터, 잘못된 최상위
-`filters`, 중복 JSON 키, JSON 키·경로의 터미널 제어 문자, 과도한 정수·
-float·NaN·무한대, MAC overflow, epsilon 경계, 정적
+`filters`, 케이스·전역 중복 JSON 키, JSON 키·경로의 제어 문자·Unicode
+surrogate, 과도한 정수·float·NaN·무한대, MAC overflow, epsilon 경계, 정적
 6개 케이스, 전체 `--json` 성공·실패·누락 경계, 실행 위치와 무관한 기본
 데이터 경로, 메뉴·행 재입력, `run_cli()` 직접 호출과 인자 파싱 중
 Ctrl+C·EOF가 포함됩니다.

@@ -221,14 +221,26 @@ class JsonAnalysisTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "JSON 파일"):
                         load_json_file(path)
 
-    def test_duplicate_json_keys_are_rejected(self):
+    def test_duplicate_json_key_only_fails_its_case(self):
         document = (
             '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
-            '"patterns":{"size_1_1":{"input":[[1]],'
-            '"expected":"x","expected":"cross"}}}'
+            '"patterns":{"size_1_bad":{"input":[[1]],'
+            '"expected":"x","expected":"cross"},'
+            '"size_1_good":{"input":[[1]],"expected":"cross"}}}'
         )
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "duplicate-key.json"
+            path.write_text(document, encoding="utf-8")
+            report = analyze_data(load_json_file(path))
+
+        self.assertEqual((report["passed"], report["failed"]), (1, 1))
+        self.assertIn("중복 JSON 키", report["results"][0]["reason"])
+        self.assertEqual(report["results"][1]["status"], "PASS")
+
+    def test_top_level_duplicate_json_keys_are_rejected(self):
+        document = '{"filters":{},"filters":{},"patterns":{}}'
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "duplicate-top-level.json"
             path.write_text(document, encoding="utf-8")
 
             with self.assertRaisesRegex(ValueError, "중복 JSON 키"):
