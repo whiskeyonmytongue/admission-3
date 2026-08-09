@@ -133,6 +133,24 @@ class JsonAnalysisTests(unittest.TestCase):
         self.assertIn("허용 범위", report["results"][0]["reason"])
         self.assertEqual(report["results"][1]["status"], "PASS")
 
+    def test_deep_oversized_case_does_not_stop_following_case(self):
+        nested_number = "[" * 500 + "9" * 5000 + "]" * 500
+        document = (
+            '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
+            '"patterns":{"size_1_bad":{"input":[[1]],'
+            '"expected":"cross","note":'
+            + nested_number
+            + '},"size_1_good":{"input":[[1]],"expected":"cross"}}}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "deep-oversized-case.json"
+            path.write_text(document, encoding="utf-8")
+            report = analyze_data(load_json_file(path))
+
+        self.assertEqual((report["passed"], report["failed"]), (1, 1))
+        self.assertIn("허용 범위", report["results"][0]["reason"])
+        self.assertEqual(report["results"][1]["status"], "PASS")
+
     def test_large_metadata_integer_is_preserved_exactly(self):
         positive = "9" * 310
         negative = "-" + "8" * 310

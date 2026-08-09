@@ -102,15 +102,22 @@ def _normalize_loaded_data(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _contains_out_of_range_number(value: object) -> bool:
-    if isinstance(value, _OutOfRangeJsonNumber):
-        return True
-    if isinstance(value, list):
-        return any(_contains_out_of_range_number(item) for item in value)
-    if isinstance(value, dict):
-        return any(
-            _contains_out_of_range_number(item)
-            for item in value.values()
-        )
+    pending = [value]
+    visited = set()
+    while pending:
+        current = pending.pop()
+        if isinstance(current, _OutOfRangeJsonNumber):
+            return True
+        if not isinstance(current, (list, dict)):
+            continue
+        identity = id(current)
+        if identity in visited:
+            continue
+        visited.add(identity)
+        if isinstance(current, list):
+            pending.extend(current)
+        else:
+            pending.extend(current.values())
     return False
 
 
@@ -246,7 +253,13 @@ def _analyze_case(
                 predicted,
                 expected,
             )
-    except (KeyError, TypeError, ValueError, OverflowError) as error:
+    except (
+        KeyError,
+        TypeError,
+        ValueError,
+        OverflowError,
+        RecursionError,
+    ) as error:
         result["reason"] = str(error)
     return result
 
