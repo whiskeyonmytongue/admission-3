@@ -60,7 +60,7 @@ def _mac_nested_values(pattern: Matrix, filter_matrix: Matrix) -> float:
                 pattern[row_index][column_index]
                 * filter_matrix[row_index][column_index]
             )
-    return score
+    return _finite_mac_score(score)
 
 
 def flatten_matrix(matrix: object) -> List[float]:
@@ -88,6 +88,12 @@ def _mac_flat_values(
     score = 0.0
     for index in range(len(pattern)):
         score += pattern[index] * filter_matrix[index]
+    return _finite_mac_score(score)
+
+
+def _finite_mac_score(score: float) -> float:
+    if not math.isfinite(score):
+        raise ValueError("MAC 연산 결과가 float 범위를 벗어났습니다.")
     return score
 
 
@@ -191,6 +197,7 @@ def benchmark_mac(
     started_at = time.perf_counter_ns()
     for _ in range(repetitions):
         score = operation(pattern, filter_matrix)
+    _finite_mac_score(score)
     elapsed_ns = time.perf_counter_ns() - started_at
     average_ms = elapsed_ns / repetitions / 1_000_000.0
     return average_ms, score

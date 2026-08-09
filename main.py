@@ -23,6 +23,8 @@ from simulator import (
 
 Output = Callable[[str], None]
 Input = Callable[[str], str]
+PROJECT_ROOT = Path(__file__).resolve().parent
+DEFAULT_DATA_PATH = PROJECT_ROOT / "data.json"
 
 
 def read_mode(input_fn: Input, output_fn: Output) -> str:
@@ -197,7 +199,8 @@ def run_cli(
         if mode == "1":
             return run_manual(actual_input, output_fn)
         path_text = actual_input("data.json 경로 [data.json]: ").strip()
-        return run_json(Path(path_text or "data.json"), output_fn)
+        path = Path(path_text) if path_text else DEFAULT_DATA_PATH
+        return run_json(path, output_fn)
     except (EOFError, KeyboardInterrupt):
         output_fn("\n입력이 종료되어 시뮬레이터를 안전하게 종료합니다.")
         return 0

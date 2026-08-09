@@ -1,7 +1,9 @@
 """JSON 일괄 분석과 성능 측정을 담당한다."""
 
 import json
+import math
 import re
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -27,7 +29,7 @@ MAX_PARSED_INTEGER_DIGITS = 640
 _FLOAT_OVERFLOW_SENTINEL = 10 ** 400
 
 
-class _OversizedJsonInteger:
+class _OutOfRangeJsonNumber:
     def __init__(self, negative: bool) -> None:
         """부호만 보존하는 과도하게 큰 JSON 정수 표식을 만든다."""
         self.negative = negative
@@ -36,20 +38,31 @@ class _OversizedJsonInteger:
 def _parse_json_integer(raw_value: str) -> object:
     digits = raw_value[1:] if raw_value.startswith("-") else raw_value
     if len(digits) > MAX_PARSED_INTEGER_DIGITS:
-        return _OversizedJsonInteger(raw_value.startswith("-"))
+        return _OutOfRangeJsonNumber(raw_value.startswith("-"))
     return int(raw_value)
 
 
-def _normalize_oversized_matrix(value: object) -> object:
-    if isinstance(value, _OversizedJsonInteger):
+def _parse_json_float(raw_value: str) -> object:
+    value = float(raw_value)
+    if not math.isfinite(value):
+        return _OutOfRangeJsonNumber(raw_value.startswith("-"))
+    return value
+
+
+def _reject_json_constant(raw_value: str) -> object:
+    raise ValueError("JSON 표준에 없는 숫자 상수입니다: {0}".format(raw_value))
+
+
+def _normalize_out_of_range_matrix(value: object) -> object:
+    if isinstance(value, _OutOfRangeJsonNumber):
         if value.negative:
             return -_FLOAT_OVERFLOW_SENTINEL
         return _FLOAT_OVERFLOW_SENTINEL
     if isinstance(value, list):
-        return [_normalize_oversized_matrix(item) for item in value]
+        return [_normalize_out_of_range_matrix(item) for item in value]
     if isinstance(value, dict):
         return {
-            key: _normalize_oversized_matrix(item)
+            key: _normalize_out_of_range_matrix(item)
             for key, item in value.items()
         }
     return value
@@ -71,7 +84,7 @@ def _normalize_filter_matrices(raw_filters: object) -> None:
                 normalize_label(raw_label)
             except ValueError:
                 continue
-            raw_filter_set[raw_label] = _normalize_oversized_matrix(matrix)
+            raw_filter_set[raw_label] = _normalize_out_of_range_matrix(matrix)
 
 
 def _normalize_pattern_matrices(raw_patterns: object) -> None:
@@ -79,7 +92,7 @@ def _normalize_pattern_matrices(raw_patterns: object) -> None:
         return
     for raw_case in raw_patterns.values():
         if isinstance(raw_case, dict) and "input" in raw_case:
-            raw_case["input"] = _normalize_oversized_matrix(
+            raw_case["input"] = _normalize_out_of_range_matrix(
                 raw_case["input"]
             )
 
@@ -87,21 +100,21 @@ def _normalize_pattern_matrices(raw_patterns: object) -> None:
 def _normalize_loaded_data(data: Dict[str, Any]) -> Dict[str, Any]:
     _normalize_filter_matrices(data.get("filters"))
     _normalize_pattern_matrices(data.get("patterns"))
-    if _contains_oversized_integer(data):
+    if _contains_out_of_range_number(data):
         raise ValueError(
-            "행렬 필드 밖의 JSON 정수가 허용 범위를 벗어났습니다."
+            "행렬 필드 밖의 JSON 숫자가 허용 범위를 벗어났습니다."
         )
     return data
 
 
-def _contains_oversized_integer(value: object) -> bool:
-    if isinstance(value, _OversizedJsonInteger):
+def _contains_out_of_range_number(value: object) -> bool:
+    if isinstance(value, _OutOfRangeJsonNumber):
         return True
     if isinstance(value, list):
-        return any(_contains_oversized_integer(item) for item in value)
+        return any(_contains_out_of_range_number(item) for item in value)
     if isinstance(value, dict):
         return any(
-            _contains_oversized_integer(item)
+            _contains_out_of_range_number(item)
             for item in value.values()
         )
     return False
@@ -111,8 +124,13 @@ def load_json_file(path: Path) -> Dict[str, Any]:
     """UTF-8 JSON 파일을 읽고 최상위 객체를 확인한다."""
     try:
         with path.open("r", encoding="utf-8") as source:
-            data = json.load(source, parse_int=_parse_json_integer)
-    except (OSError, json.JSONDecodeError, RecursionError) as error:
+            data = json.load(
+                source,
+                parse_int=_parse_json_integer,
+                parse_float=_parse_json_float,
+                parse_constant=_reject_json_constant,
+            )
+    except (OSError, ValueError, RecursionError) as error:
         raise ValueError("JSON 파일을 읽을 수 없습니다: {0}".format(error))
     if not isinstance(data, dict):
         raise ValueError("JSON 최상위 값은 객체여야 합니다.")
@@ -129,7 +147,14 @@ def extract_pattern_size(case_id: object) -> int:
     matched = PATTERN_KEY.fullmatch(case_id)
     if matched is None:
         raise ValueError("패턴 키는 size_{N}_{idx} 형식이어야 합니다.")
-    size = int(matched.group(1))
+    size_text = matched.group(1).lstrip("0") or "0"
+    platform_limit = str(sys.maxsize)
+    if len(size_text) > len(platform_limit) or (
+        len(size_text) == len(platform_limit)
+        and size_text > platform_limit
+    ):
+        raise ValueError("패턴 크기가 실행 환경의 범위를 벗어났습니다.")
+    size = int(size_text)
     if size < 1:
         raise ValueError("패턴 크기는 1 이상이어야 합니다.")
     return size
@@ -240,6 +265,8 @@ def analyze_data(data: object) -> Dict[str, Any]:
     raw_filters = data.get("filters")
     if not isinstance(raw_filters, dict):
         raise ValueError("filters는 객체여야 합니다.")
+    if not raw_patterns:
+        raise ValueError("patterns는 비어 있을 수 없습니다.")
 
     results = [
         _analyze_case(case_id, raw_case, raw_filters)

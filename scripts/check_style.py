@@ -16,6 +16,8 @@ CODE_LINE_LIMIT = 79
 TEXT_LINE_LIMIT = 72
 MAKE_LINE_LIMIT = 100
 FUNCTION_LINE_LIMIT = 50
+
+
 def source_paths() -> List[Path]:
     """Git 관리 대상과 새로 만든 Python·Makefile 경로를 반환한다."""
     try:
@@ -40,9 +42,22 @@ def source_paths() -> List[Path]:
             if item
         ]
     except (OSError, subprocess.CalledProcessError):
-        paths = list(ROOT.glob("*.py"))
-        paths.extend((ROOT / "scripts").rglob("*.py"))
-        paths.extend((ROOT / "tests").rglob("*.py"))
+        excluded = {
+            ".agents",
+            ".git",
+            ".venv",
+            "__pycache__",
+            "_bmad",
+            "venv",
+        }
+        paths = [
+            path
+            for path in ROOT.rglob("*.py")
+            if not any(
+                part in excluded
+                for part in path.relative_to(ROOT).parts
+            )
+        ]
         makefile = ROOT / "Makefile"
         if makefile.exists():
             paths.append(makefile)
@@ -226,6 +241,40 @@ def function_length(node: ast.AST) -> int:
     return (node.end_lineno or node.lineno) - min(starts) + 1
 
 
+def check_top_level_spacing(
+    path: Path,
+    source: str,
+    tree: ast.Module,
+    errors: List[str],
+) -> None:
+    """최상위 함수·클래스 앞에 빈 줄 두 개가 있는지 검사한다."""
+    source_lines = source.splitlines()
+    definition_types = (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+    for node in tree.body:
+        if not isinstance(node, definition_types):
+            continue
+        starts = [node.lineno]
+        starts.extend(
+            item.lineno
+            for item in getattr(node, "decorator_list", [])
+        )
+        start = min(starts)
+        if not any(line.strip() for line in source_lines[:start - 1]):
+            continue
+        blank_count = 0
+        for line in reversed(source_lines[:start - 1]):
+            if line.strip():
+                break
+            blank_count += 1
+        if blank_count < 2:
+            add_error(
+                errors,
+                path,
+                start,
+                "최상위 함수·클래스 앞에는 빈 줄 두 개가 필요합니다.",
+            )
+
+
 def check_ast(path: Path, source: str, errors: List[str]) -> None:
     """최소 Python 문법, docstring, 함수 길이를 검사한다."""
     try:
@@ -245,6 +294,7 @@ def check_ast(path: Path, source: str, errors: List[str]) -> None:
         return
     if ast.get_docstring(tree, clean=False) is None:
         add_error(errors, path, 1, "모듈 docstring이 없습니다.")
+    check_top_level_spacing(path, source, tree, errors)
     if "tests" not in path.relative_to(ROOT).parts:
         for node in public_callables(tree):
             if ast.get_docstring(node, clean=False) is None:

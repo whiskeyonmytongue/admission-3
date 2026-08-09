@@ -2,10 +2,13 @@
 
 import io
 import os
+import subprocess
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from scripts import check_runtime, check_style
+from scripts import check_runtime, check_style, check_syntax
 
 
 class StyleCheckerTests(unittest.TestCase):
@@ -55,6 +58,47 @@ class StyleCheckerTests(unittest.TestCase):
         self.assertEqual(result, 1)
         self.assertIn("probe.py:3", captured_err.getvalue())
         self.assertIn("79자를 초과", captured_err.getvalue())
+
+    def test_top_level_definition_requires_two_blank_lines(self):
+        path = check_style.ROOT / "probe.py"
+        source = (
+            '"""Module."""\n\nVALUE = 1\n\n'
+            'def public():\n    """Return a value."""\n    return VALUE\n'
+        )
+        errors = []
+
+        check_style.check_ast(path, source, errors)
+
+        self.assertTrue(any("빈 줄 두 개" in item for item in errors))
+
+    def test_git_failure_fallback_discovers_nested_package(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / "package" / "nested.py"
+            nested.parent.mkdir()
+            nested.write_text('"""Nested module."""\n', encoding="utf-8")
+            with patch.object(check_style, "ROOT", root), patch(
+                "scripts.check_style.subprocess.check_output",
+                side_effect=subprocess.CalledProcessError(1, "git"),
+            ):
+                paths = check_style.source_paths()
+
+        self.assertIn(nested, paths)
+
+    def test_syntax_check_uses_discovered_python_files(self):
+        captured_error = io.StringIO()
+        with tempfile.TemporaryDirectory() as directory:
+            invalid = Path(directory) / "new_module.py"
+            invalid.write_text("return\n", encoding="utf-8")
+            with patch.object(
+                check_syntax,
+                "python_paths",
+                return_value=[invalid],
+            ), patch("sys.stderr", captured_error):
+                result = check_syntax.main()
+
+        self.assertEqual(result, 1)
+        self.assertIn("Syntax check: FAIL", captured_error.getvalue())
 
     def test_empty_discovery_returns_failure(self):
         captured_err = io.StringIO()
@@ -149,7 +193,7 @@ class StyleCheckerTests(unittest.TestCase):
         )
         for body in sources:
             source = (
-                '\"\"\"Module.\"\"\"\nasync def public():\n'
+                '\"\"\"Module.\"\"\"\n\n\nasync def public():\n'
                 '    \"\"\"Return a valid async expression.\"\"\"\n'
                 + body
             )

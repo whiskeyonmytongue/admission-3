@@ -13,11 +13,11 @@
 | 3·5·13·25 성능 측정 | 각 10회 평균 | JSON 실행 결과의 성능 표 |
 | 1D 메모리 접근 비교 | 완료 | `make bonus` |
 | 홀수 N 패턴 생성 | 완료 | `python3 main.py --generate 5` |
-| 자동 테스트 | 52개 PASS | `make verify PYTHON=python3.8` |
-| Python 3.8 실행 | 52개 PASS | 로컬 공식 3.8 컨테이너 |
+| 자동 테스트 | 66개 PASS | `make verify PYTHON=python3.8` |
+| Python 3.8·3.14 실행 | 각각 66개 PASS | 공식 Python 컨테이너 |
 | Python 스타일 | PASS | `make style` |
 
-실행 당시의 전체 출력은 [수동 입력 로그](docs/evidence/logs/manual-mode.txt), [JSON 분석 로그](docs/evidence/logs/json-analysis.txt), [자동 검증 로그](docs/evidence/logs/verification.txt)에 보존했습니다.
+주요 실행 결과와 검증 환경은 [수동 입력 로그](docs/evidence/logs/manual-mode.txt), [JSON 분석 로그](docs/evidence/logs/json-analysis.txt), [자동 검증 로그](docs/evidence/logs/verification.txt)에 보존했습니다.
 
 ## 바로 실행하기
 
@@ -42,7 +42,7 @@ python3 main.py
 python3 main.py --json data.json
 ```
 
-보너스 패턴 생성기와 2D/1D 접근 비교는 다음처럼 확인합니다. 짝수 N은 중앙선이 하나로 정해지지 않으므로 오류로 처리합니다.
+보너스 패턴 생성기와 2D/1D 접근 비교는 다음처럼 확인합니다. 짝수 N은 중앙선이 하나로 정해지지 않으므로 오류로 처리합니다. 생성 크기에는 임의의 상한을 두지 않았지만, N×N 행렬의 메모리와 출력량이 N²으로 증가하므로 실행 환경에 맞는 크기를 입력해야 합니다.
 
 ```bash
 python3 main.py --generate 5
@@ -73,7 +73,7 @@ JSON 분석 흐름은 다음과 같습니다.
 6. 점수 차이가 `1e-9`보다 작으면 `UNDECIDED`, 아니면 더 큰 점수의 라벨을 선택합니다.
 7. 판정과 예상 라벨을 비교해 PASS/FAIL을 집계합니다.
 
-경계는 의도적으로 **`abs(Cross-X) < 1e-9`**로 구현했습니다. 차이가 정확히 `1e-9`인 경우에는 동점이 아닙니다. NaN, 무한대, `bool`, 찌그러진 행렬, 알 수 없는 라벨도 명시적으로 거부합니다.
+경계는 의도적으로 **`abs(Cross-X) < 1e-9`**로 구현했습니다. 차이가 정확히 `1e-9`인 경우에는 동점이 아닙니다. NaN, 무한대, 계산 중 발생한 overflow, `bool`, 찌그러진 행렬, 알 수 없는 라벨도 명시적으로 거부합니다. JSON의 빈 `patterns`도 성공으로 집계하지 않습니다.
 
 ## 실제 실행 결과
 
@@ -122,6 +122,8 @@ JSON 분석 흐름은 다음과 같습니다.
 | EOF 또는 Ctrl+C | 직접 호출을 포함해 traceback 없이 종료 코드 0 |
 | JSON 문법·최상위 스키마 오류 | 원인을 출력하고 종료 코드 1 |
 | `filters`가 객체가 아님 | `filters는 객체여야 합니다`로 원인 명시 |
+| 빈 `patterns` | 처리할 케이스가 없음을 알리고 종료 코드 1 |
+| JSON `NaN`·`Infinity`·float overflow | 비유한 숫자로 처리하지 않고 오류 또는 해당 케이스 FAIL |
 | 패턴 키·라벨·행렬 오류 | 해당 케이스만 FAIL, 다음 케이스 계속 실행 |
 | 점수 차이 `< 1e-9` | `UNDECIDED`로 판정 |
 | 짝수 패턴 생성 요청 | 홀수 크기 안내 후 종료 코드 1 |
@@ -138,24 +140,28 @@ JSON 분석 흐름은 다음과 같습니다.
 ├── data.json                       # 출처가 표시된 합성 6개 케이스
 ├── tests/                          # 경계·오류·CLI 테스트
 ├── scripts/check_data.py           # 합성 JSON 6/6 검증
-├── scripts/check_style.py          # PEP 8·257·Python 3.8 스타일 검사
-├── .github/workflows/verify.yml    # Python 3.8 실제 실행
+├── scripts/check_style.py          # 과제 스타일·docstring·Python 3.8 검사
+├── scripts/check_syntax.py         # 모든 Python 파일 구문 컴파일
+├── scripts/verify_remote.py        # 정확한 저장소·PUBLIC·HEAD 검증
+├── .github/workflows/verify.yml    # Python 3.8·현재 버전 CI
 ├── docs/evidence/logs/             # 실제 실행 출력
 └── Makefile                        # 로컬·원격 검증 진입점
 ```
 
 ## 테스트 범위
 
-`make verify PYTHON=python3.8`은 정확히 Python 3.8에서 구문 컴파일,
-PEP 8·257 기반 공통 스타일 규칙,
-unittest 52개, 합성 데이터 6/6, EOF 안전 종료를 순서대로 확인합니다. 스타일
-검사는 UTF-8·LF·마지막 개행·공백·줄 길이(코드 79자, 주석과 docstring
+`make verify PYTHON=python3.8`은 정확히 Python 3.8에서 전체 Python 파일의
+구문 컴파일, 과제에 적용한 PEP 8·257 핵심 규칙, unittest 66개, 합성 데이터
+6/6, EOF 안전 종료를 순서대로 확인합니다. 스타일 검사는 UTF-8·LF·마지막
+개행·공백·최상위 정의 사이 두 줄·줄 길이(코드 79자, 주석과 docstring
 72자)·공개 API docstring·50줄 초과 함수·Python 3.8 AST 문법과 현재 Python의
-컴파일 문맥을 표준 라이브러리만 사용해 검사합니다. GitHub Actions도 Python
-3.8에서 같은 명령을 실행하므로 로컬 AST와 실제 컴파일 기준이 일치합니다.
+컴파일 문맥을 표준 라이브러리만 사용해 검사합니다.
 
-로컬에서는 공식 `python:3.8-slim`의 Python 3.8.20으로 같은 52개 테스트를
-다시 통과시켰습니다. 테스트에는 malformed matrix/schema, 잘못된 최상위
-`filters`, float 범위를 넘는 정수, NaN·무한대 행 재입력, 과도한 JSON 중첩,
-epsilon 경계, 정적 6개 케이스, 전체 `--json` 성공·실패·누락 경계, 메뉴·행
-재입력, `run_cli()` 직접 호출과 인자 파싱 중 Ctrl+C·EOF가 포함됩니다.
+로컬에서는 공식 `python:3.8-slim`과 `python:3.14-slim`에서 같은 66개
+테스트를 통과시켰습니다. GitHub Actions도 고정된 commit SHA의 Action을
+사용해 Python 3.8 최소 버전 전체 검증과 Python 3.14 호환성 검증을 나눠
+실행합니다. 테스트에는 malformed matrix/schema, 빈 데이터, 잘못된 최상위
+`filters`, 과도한 정수·float·NaN·무한대, MAC overflow, epsilon 경계, 정적
+6개 케이스, 전체 `--json` 성공·실패·누락 경계, 실행 위치와 무관한 기본
+데이터 경로, 메뉴·행 재입력, `run_cli()` 직접 호출과 인자 파싱 중
+Ctrl+C·EOF가 포함됩니다.

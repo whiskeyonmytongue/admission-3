@@ -1,4 +1,5 @@
 PYTHON ?= python3
+MKTEMP ?= mktemp
 
 .PHONY: all verify runtime syntax style test json-check cli-check run bonus clean
 .PHONY: verify-remote
@@ -12,11 +13,7 @@ runtime:
 	@$(PYTHON) scripts/check_runtime.py
 
 syntax:
-	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m py_compile \
-		main.py npu.py simulator.py scripts/check_data.py \
-		scripts/check_runtime.py scripts/check_style.py \
-		tests/test_cli.py tests/test_npu.py tests/test_simulator.py \
-		tests/test_style.py
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m scripts.check_syntax
 
 style:
 	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) scripts/check_style.py
@@ -28,7 +25,9 @@ json-check:
 	@PYTHONDONTWRITEBYTECODE=1 $(PYTHON) -m scripts.check_data
 
 cli-check:
-	@task_output=$$(mktemp); \
+	@task_output=$$($(MKTEMP)) || { \
+		echo "[FAIL] 임시 출력 파일을 만들지 못했습니다." >&2; exit 1; \
+	}; \
 		trap 'rm -f "$$task_output"' EXIT; \
 		printf '' | PYTHONDONTWRITEBYTECODE=1 $(PYTHON) main.py \
 			>"$$task_output"; \
@@ -48,18 +47,4 @@ clean:
 	@find . -type d -name '__pycache__' -empty -delete
 
 verify-remote: verify
-	@remote_url="$$(git remote get-url origin)"; \
-		case "$$remote_url" in \
-		*whiskeyonmytongue/admission-3*) ;; \
-		*) echo "[FAIL] origin 주소가 admission-3 저장소가 아닙니다."; exit 1;; \
-		esac
-	@remote_head="$$(git ls-remote --exit-code origin refs/heads/main | \
-		awk '{print $$1}')"; \
-		local_head="$$(git rev-parse HEAD)"; \
-		test "$$remote_head" = "$$local_head" || { \
-		echo "[FAIL] 로컬과 origin/main HEAD가 다릅니다."; exit 1; }
-	@test "$$(gh repo view whiskeyonmytongue/admission-3 \
-		--json visibility --jq .visibility)" = "PUBLIC"
-	@test "$$(gh repo view whiskeyonmytongue/admission-3 \
-		--json defaultBranchRef --jq .defaultBranchRef.name)" = "main"
-	@echo "[PASS] PUBLIC/main/HEAD 일치"
+	@$(PYTHON) scripts/verify_remote.py

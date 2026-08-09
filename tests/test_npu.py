@@ -51,6 +51,13 @@ class MatrixAndMacTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate_matrix([[value]])
 
+    def test_finite_inputs_cannot_return_infinite_mac_score(self):
+        huge = [[1e308]]
+        with self.assertRaisesRegex(ValueError, "MAC 연산 결과"):
+            mac_nested(huge, huge)
+        with self.assertRaisesRegex(ValueError, "MAC 연산 결과"):
+            mac_flat(huge, huge)
+
 
 class PolicyTests(unittest.TestCase):
     def test_difference_below_epsilon_is_tie(self):
@@ -76,6 +83,10 @@ class PolicyTests(unittest.TestCase):
     def test_benchmark_rejects_invalid_repetition(self):
         with self.assertRaises(ValueError):
             benchmark_mac(mac_nested, [[1]], [[1]], 0)
+
+    def test_benchmark_rejects_non_finite_operation_result(self):
+        with self.assertRaisesRegex(ValueError, "MAC 연산 결과"):
+            benchmark_mac(lambda _a, _b: math.inf, [[1]], [[1]], 1)
 
 
 if __name__ == "__main__":

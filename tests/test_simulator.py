@@ -165,6 +165,48 @@ class JsonAnalysisTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "행렬 필드 밖"):
                         load_json_file(path)
 
+    def test_non_standard_json_constants_are_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            constants = ("NaN", "Infinity", "-Infinity")
+            for index, constant in enumerate(constants):
+                with self.subTest(constant=constant):
+                    path = Path(directory) / "constant-{0}.json".format(index)
+                    path.write_text(
+                        '{"filters":{},"patterns":{},"_meta":{"n":'
+                        + constant
+                        + "}}",
+                        encoding="utf-8",
+                    )
+                    with self.assertRaisesRegex(ValueError, "JSON 파일"):
+                        load_json_file(path)
+
+    def test_overflowing_float_metadata_is_rejected(self):
+        document = '{"filters":{},"patterns":{},"_meta":{"n":1e999}}'
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "overflow-metadata.json"
+            path.write_text(document, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "행렬 필드 밖"):
+                load_json_file(path)
+
+    def test_overflowing_float_matrix_only_fails_its_case(self):
+        document = (
+            '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
+            '"patterns":{"size_1_bad":{"input":[[1e999]],'
+            '"expected":"cross"},"size_1_good":{"input":[[1]],'
+            '"expected":"cross"}}}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "overflow-matrix.json"
+            path.write_text(document, encoding="utf-8")
+            report = analyze_data(load_json_file(path))
+
+        self.assertEqual((report["passed"], report["failed"]), (1, 1))
+        self.assertIn("float 범위", report["results"][0]["reason"])
+
+    def test_empty_patterns_are_rejected(self):
+        with self.assertRaisesRegex(ValueError, "비어"):
+            analyze_data({"filters": {}, "patterns": {}})
+
     def test_malformed_schema_is_reported_per_case(self):
         data = valid_data()
         data["patterns"] = {
@@ -231,6 +273,16 @@ class ExtractionAndPerformanceTests(unittest.TestCase):
             with self.subTest(key=key):
                 with self.assertRaises(ValueError):
                     extract_pattern_size(key)
+        huge_key = "size_{0}_1".format("9" * 1000)
+        with self.assertRaisesRegex(ValueError, "실행 환경"):
+            extract_pattern_size(huge_key)
+
+    def test_data_check_rejects_changed_contract(self):
+        data = load_json_file(check_data.DATA_PATH)
+        data["patterns"].pop("size_25_2")
+
+        with self.assertRaisesRegex(ValueError, "케이스 ID"):
+            check_data.validate_dataset(data)
 
     def test_performance_has_required_sizes_and_repetitions(self):
         rows = performance_rows(10)

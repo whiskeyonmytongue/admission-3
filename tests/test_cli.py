@@ -2,6 +2,7 @@
 
 import io
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -75,6 +76,25 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(result, 0)
         self.assertIn("통과: 6개", captured_out.getvalue())
+
+    def test_interactive_default_json_path_is_project_stable(self):
+        answers = iter(["2", ""])
+        with tempfile.TemporaryDirectory() as directory:
+            original_directory = Path.cwd()
+            try:
+                os.chdir(directory)
+                with patch("main.run_json", return_value=0) as run_json:
+                    result = main.run_cli(
+                        lambda _prompt: next(answers),
+                        lambda _message: None,
+                    )
+            finally:
+                os.chdir(original_directory)
+
+        self.assertEqual(result, 0)
+        output_fn = run_json.call_args.args[1]
+        self.assertIs(run_json.call_args.args[0], main.DEFAULT_DATA_PATH)
+        self.assertTrue(callable(output_fn))
 
     def test_json_option_reports_failed_case(self):
         data = {
