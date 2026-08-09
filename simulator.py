@@ -22,11 +22,18 @@ PATTERN_KEY = re.compile(r"^size_(\d+)_(.+)$")
 PERFORMANCE_SIZES = (3, 5, 13, 25)
 
 
+def _parse_json_integer(raw_value: str) -> object:
+    try:
+        return int(raw_value)
+    except ValueError:
+        return raw_value
+
+
 def load_json_file(path: Path) -> Dict[str, Any]:
     """UTF-8 JSON 파일을 읽고 최상위 객체를 확인한다."""
     try:
         with path.open("r", encoding="utf-8") as source:
-            data = json.load(source)
+            data = json.load(source, parse_int=_parse_json_integer)
     except (OSError, json.JSONDecodeError, RecursionError) as error:
         raise ValueError("JSON 파일을 읽을 수 없습니다: {0}".format(error))
     if not isinstance(data, dict):

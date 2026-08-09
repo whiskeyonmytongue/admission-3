@@ -102,6 +102,14 @@ class StyleCheckerTests(unittest.TestCase):
 
         self.assertTrue(any("50줄" in item for item in errors))
 
+    def test_compiler_context_error_fails_style_check(self):
+        path = check_style.ROOT / "probe.py"
+        errors = []
+
+        check_style.check_ast(path, '"""Module."""\nreturn\n', errors)
+
+        self.assertTrue(any("문법 오류" in item for item in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

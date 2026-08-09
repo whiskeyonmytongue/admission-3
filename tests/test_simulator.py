@@ -78,6 +78,27 @@ class JsonAnalysisTests(unittest.TestCase):
         self.assertIn("float 범위", report["results"][0]["reason"])
         self.assertEqual(report["results"][1]["status"], "PASS")
 
+    def test_file_huge_integer_only_fails_its_case(self):
+        huge_integer = "9" * 5000
+        document = (
+            '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
+            '"patterns":{'
+            '"size_1_bad":{"input":[['
+            + huge_integer
+            + ']],"expected":"cross"},'
+            '"size_1_good":{"input":[[1]],"expected":"cross"}}}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "huge.json"
+            path.write_text(document, encoding="utf-8")
+            report = analyze_data(load_json_file(path))
+
+        self.assertEqual(
+            (report["total"], report["passed"], report["failed"]),
+            (2, 1, 1),
+        )
+        self.assertEqual(report["results"][1]["status"], "PASS")
+
     def test_malformed_schema_is_reported_per_case(self):
         data = valid_data()
         data["patterns"] = {

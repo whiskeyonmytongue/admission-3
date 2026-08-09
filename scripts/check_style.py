@@ -232,6 +232,7 @@ def check_ast(path: Path, source: str, errors: List[str]) -> None:
             filename=str(path),
             feature_version=PYTHON_VERSION,
         )
+        compile(source, str(path), "exec", dont_inherit=True)
     except SyntaxError as error:
         add_error(
             errors,
