@@ -113,7 +113,24 @@ class JsonAnalysisTests(unittest.TestCase):
             (report["total"], report["passed"], report["failed"]),
             (2, 1, 1),
         )
-        self.assertIn("float 범위", report["results"][0]["reason"])
+        self.assertIn("허용 범위", report["results"][0]["reason"])
+        self.assertEqual(report["results"][1]["status"], "PASS")
+
+    def test_oversized_expected_only_fails_its_case(self):
+        huge_integer = "9" * 5000
+        document = (
+            '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
+            '"patterns":{"size_1_bad":{"input":[[1]],"expected":'
+            + huge_integer
+            + '},"size_1_good":{"input":[[1]],"expected":"cross"}}}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "oversized-expected.json"
+            path.write_text(document, encoding="utf-8")
+            report = analyze_data(load_json_file(path))
+
+        self.assertEqual((report["passed"], report["failed"]), (1, 1))
+        self.assertIn("허용 범위", report["results"][0]["reason"])
         self.assertEqual(report["results"][1]["status"], "PASS")
 
     def test_large_metadata_integer_is_preserved_exactly(self):
@@ -148,22 +165,28 @@ class JsonAnalysisTests(unittest.TestCase):
 
     def test_oversized_nested_non_matrix_field_is_rejected(self):
         huge_integer = "9" * 5000
-        documents = (
-            '{"filters":{},"patterns":{"size_1_1":{'
+        case_document = (
+            '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
+            '"patterns":{"size_1_1":{'
             '"input":[[1]],"expected":"cross","note":'
             + huge_integer
-            + "}}}",
+            + '},"size_1_2":{"input":[[1]],"expected":"cross"}}}'
+        )
+        global_document = (
             '{"filters":{"_meta":{"note":'
             + huge_integer
-            + '}},"patterns":{}}',
+            + '}},"patterns":{}}'
         )
         with tempfile.TemporaryDirectory() as directory:
-            for index, document in enumerate(documents):
-                with self.subTest(index=index):
-                    path = Path(directory) / "nested-{0}.json".format(index)
-                    path.write_text(document, encoding="utf-8")
-                    with self.assertRaisesRegex(ValueError, "행렬 필드 밖"):
-                        load_json_file(path)
+            case_path = Path(directory) / "case-nested.json"
+            case_path.write_text(case_document, encoding="utf-8")
+            report = analyze_data(load_json_file(case_path))
+            self.assertEqual((report["passed"], report["failed"]), (1, 1))
+
+            global_path = Path(directory) / "global-nested.json"
+            global_path.write_text(global_document, encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "전역"):
+                load_json_file(global_path)
 
     def test_non_standard_json_constants_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -185,7 +208,7 @@ class JsonAnalysisTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "overflow-metadata.json"
             path.write_text(document, encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "행렬 필드 밖"):
+            with self.assertRaisesRegex(ValueError, "전역"):
                 load_json_file(path)
 
     def test_overflowing_float_matrix_only_fails_its_case(self):
@@ -201,7 +224,7 @@ class JsonAnalysisTests(unittest.TestCase):
             report = analyze_data(load_json_file(path))
 
         self.assertEqual((report["passed"], report["failed"]), (1, 1))
-        self.assertIn("float 범위", report["results"][0]["reason"])
+        self.assertIn("허용 범위", report["results"][0]["reason"])
 
     def test_empty_patterns_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "비어"):

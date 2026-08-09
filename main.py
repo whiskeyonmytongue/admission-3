@@ -154,7 +154,7 @@ def run_json(path: Path, output_fn: Output, repetitions: int = 10) -> int:
     output_fn("\n[1] 필터 로드")
     output_fn("파일: {0}".format(path))
     for size_key in _filter_sizes(data):
-        output_fn("✓ {0} 필터 데이터 확인".format(size_key))
+        output_fn("- {0} 필터 키 발견".format(size_key))
 
     report = analyze_data(data)
     output_fn("\n[2] 패턴 분석 (표준 라벨 적용)")

@@ -87,22 +87,16 @@ def _normalize_filter_matrices(raw_filters: object) -> None:
             raw_filter_set[raw_label] = _normalize_out_of_range_matrix(matrix)
 
 
-def _normalize_pattern_matrices(raw_patterns: object) -> None:
-    if not isinstance(raw_patterns, dict):
-        return
-    for raw_case in raw_patterns.values():
-        if isinstance(raw_case, dict) and "input" in raw_case:
-            raw_case["input"] = _normalize_out_of_range_matrix(
-                raw_case["input"]
-            )
-
-
 def _normalize_loaded_data(data: Dict[str, Any]) -> Dict[str, Any]:
     _normalize_filter_matrices(data.get("filters"))
-    _normalize_pattern_matrices(data.get("patterns"))
-    if _contains_out_of_range_number(data):
+    global_data = {
+        key: value
+        for key, value in data.items()
+        if key != "patterns"
+    }
+    if _contains_out_of_range_number(global_data):
         raise ValueError(
-            "행렬 필드 밖의 JSON 숫자가 허용 범위를 벗어났습니다."
+            "전역 JSON 숫자가 허용 범위를 벗어났습니다."
         )
     return data
 
@@ -198,6 +192,8 @@ def _case_matrices(
     size = extract_pattern_size(case_id)
     if not isinstance(raw_case, dict):
         raise ValueError("패턴 항목은 객체여야 합니다.")
+    if _contains_out_of_range_number(raw_case):
+        raise ValueError("패턴 케이스의 JSON 숫자가 허용 범위를 벗어났습니다.")
     if "input" not in raw_case or "expected" not in raw_case:
         raise ValueError("패턴 항목에는 input과 expected가 필요합니다.")
     filter_key = "size_{0}".format(size)

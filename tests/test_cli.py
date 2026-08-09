@@ -115,6 +115,25 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result, 1)
         self.assertIn("실패: 1개", captured_out.getvalue())
 
+    def test_json_filter_listing_does_not_claim_validation(self):
+        data = {
+            "filters": {"size_1": {"cross": [], "x": []}},
+            "patterns": {
+                "size_1_1": {"input": [[1]], "expected": "cross"},
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid-filter.json"
+            path.write_text(json.dumps(data), encoding="utf-8")
+            captured_out = io.StringIO()
+            with patch("sys.stdout", captured_out):
+                result = main.main(["--json", str(path)])
+
+        output = captured_out.getvalue()
+        self.assertEqual(result, 1)
+        self.assertIn("필터 키 발견", output)
+        self.assertNotIn("✓", output)
+
     def test_json_option_reports_missing_file(self):
         captured_out = io.StringIO()
         captured_err = io.StringIO()

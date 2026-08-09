@@ -8,7 +8,7 @@ $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
 Runtime check: PASS (Python 3.8)
 Syntax check: PASS (14 files)
 Style check: PASS (15 files, Python 3.8+)
-Ran 66 tests in 0.058s
+Ran 68 tests in 0.064s
 OK
 [PASS] data.json 6/6
 [PASS] EOF 안전 종료
@@ -21,7 +21,7 @@ $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
 
 Syntax check: PASS (14 files)
 Style check: PASS (15 files, Python 3.8+)
-Ran 66 tests in 0.077s
+Ran 68 tests in 0.087s
 OK
 [PASS] data.json 6/6
 [PASS] EOF 안전 종료

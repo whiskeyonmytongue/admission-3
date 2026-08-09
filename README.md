@@ -13,8 +13,8 @@
 | 3·5·13·25 성능 측정 | 각 10회 평균 | JSON 실행 결과의 성능 표 |
 | 1D 메모리 접근 비교 | 완료 | `make bonus` |
 | 홀수 N 패턴 생성 | 완료 | `python3 main.py --generate 5` |
-| 자동 테스트 | 66개 PASS | `make verify PYTHON=python3.8` |
-| Python 3.8·3.14 실행 | 각각 66개 PASS | 공식 Python 컨테이너 |
+| 자동 테스트 | 68개 PASS | `make verify PYTHON=python3.8` |
+| Python 3.8·3.14 실행 | 각각 68개 PASS | 공식 Python 컨테이너 |
 | Python 스타일 | PASS | `make style` |
 
 주요 실행 결과와 검증 환경은 [수동 입력 로그](docs/evidence/logs/manual-mode.txt), [JSON 분석 로그](docs/evidence/logs/json-analysis.txt), [자동 검증 로그](docs/evidence/logs/verification.txt)에 보존했습니다.
@@ -151,13 +151,13 @@ JSON 분석 흐름은 다음과 같습니다.
 ## 테스트 범위
 
 `make verify PYTHON=python3.8`은 정확히 Python 3.8에서 전체 Python 파일의
-구문 컴파일, 과제에 적용한 PEP 8·257 핵심 규칙, unittest 66개, 합성 데이터
+구문 컴파일, 과제에 적용한 PEP 8·257 핵심 규칙, unittest 68개, 합성 데이터
 6/6, EOF 안전 종료를 순서대로 확인합니다. 스타일 검사는 UTF-8·LF·마지막
 개행·공백·최상위 정의 사이 두 줄·줄 길이(코드 79자, 주석과 docstring
 72자)·공개 API docstring·50줄 초과 함수·Python 3.8 AST 문법과 현재 Python의
 컴파일 문맥을 표준 라이브러리만 사용해 검사합니다.
 
-로컬에서는 공식 `python:3.8-slim`과 `python:3.14-slim`에서 같은 66개
+로컬에서는 공식 `python:3.8-slim`과 `python:3.14-slim`에서 같은 68개
 테스트를 통과시켰습니다. GitHub Actions도 고정된 commit SHA의 Action을
 사용해 Python 3.8 최소 버전 전체 검증과 Python 3.14 호환성 검증을 나눠
 실행합니다. 테스트에는 malformed matrix/schema, 빈 데이터, 잘못된 최상위
