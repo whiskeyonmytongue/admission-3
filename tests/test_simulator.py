@@ -1,7 +1,8 @@
 """JSON 케이스 격리와 성능 리포트를 검증한다."""
 
 import json
-import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -125,16 +126,17 @@ class JsonAnalysisTests(unittest.TestCase):
 
 class ExtractionAndPerformanceTests(unittest.TestCase):
     def test_data_check_uses_project_file_outside_working_directory(self):
-        original_directory = Path.cwd()
         with tempfile.TemporaryDirectory() as directory:
-            try:
-                os.chdir(directory)
-                with patch("builtins.print") as output:
-                    check_data.main()
-            finally:
-                os.chdir(original_directory)
+            completed = subprocess.run(
+                [sys.executable, str(check_data.__file__)],
+                cwd=directory,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
 
-        output.assert_called_once_with("[PASS] data.json 6/6")
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("[PASS] data.json 6/6", completed.stdout)
 
     def test_extract_pattern_size(self):
         self.assertEqual(extract_pattern_size("size_25_6"), 25)

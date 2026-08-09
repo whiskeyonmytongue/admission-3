@@ -80,8 +80,9 @@ def decode_source(path: Path, errors: List[str]) -> Optional[str]:
         line = data[:error.start].count(b"\n") + 1
         add_error(errors, path, line, "UTF-8 파일이 아닙니다.")
         return None
-    if "\r" in source:
-        add_error(errors, path, 1, "줄바꿈은 LF만 사용해야 합니다.")
+    for number, line in enumerate(source.splitlines(keepends=True), start=1):
+        if "\r" in line:
+            add_error(errors, path, number, "줄바꿈은 LF만 사용해야 합니다.")
     if source and not source.endswith("\n"):
         add_error(
             errors,
@@ -128,11 +129,15 @@ def docstring_lines(source: str) -> Set[int]:
 def text_lines(source: str) -> Set[int]:
     """주석 또는 docstring이 놓인 줄 번호를 반환한다."""
     lines = docstring_lines(source)
+    source_lines = source.splitlines()
     try:
         tokens = tokenize.generate_tokens(StringIO(source).readline)
         for token in tokens:
             if token.type == tokenize.COMMENT:
-                lines.update(range(token.start[0], token.end[0] + 1))
+                line_index = token.start[0] - 1
+                prefix = source_lines[line_index][:token.start[1]]
+                if not prefix.strip():
+                    lines.add(token.start[0])
     except (IndentationError, tokenize.TokenError):
         return lines
     return lines
@@ -211,6 +216,14 @@ def public_callables(tree: ast.Module) -> Iterable[ast.AST]:
                     yield child
 
 
+def function_length(node: ast.AST) -> int:
+    """decorator를 포함한 함수의 전체 물리 줄 수를 반환한다."""
+    decorator_list = getattr(node, "decorator_list", [])
+    starts = [node.lineno]
+    starts.extend(item.lineno for item in decorator_list)
+    return (node.end_lineno or node.lineno) - min(starts) + 1
+
+
 def check_ast(path: Path, source: str, errors: List[str]) -> None:
     """최소 Python 문법, docstring, 함수 길이를 검사한다."""
     try:
@@ -242,7 +255,7 @@ def check_ast(path: Path, source: str, errors: List[str]) -> None:
                 )
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            length = (node.end_lineno or node.lineno) - node.lineno + 1
+            length = function_length(node)
             if length > FUNCTION_LINE_LIMIT:
                 add_error(
                     errors,

@@ -1,12 +1,15 @@
 """합성 data.json의 전체 케이스가 통과하는지 검증한다."""
 
+import sys
 from pathlib import Path
-
-from simulator import analyze_data, load_json_file
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = ROOT / "data.json"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from simulator import analyze_data, load_json_file
 
 
 def main() -> None:

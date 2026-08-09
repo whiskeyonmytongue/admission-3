@@ -68,6 +68,40 @@ class StyleCheckerTests(unittest.TestCase):
 
         self.assertEqual(errors, [])
 
+    def test_inline_comment_uses_code_line_limit(self):
+        path = check_style.ROOT / "probe.py"
+        source = 'value = "{0}"  # note\n'.format("x" * 58)
+        errors = []
+
+        check_style.check_python_lines(path, source, errors)
+
+        self.assertEqual(errors, [])
+
+    def test_crlf_reports_its_actual_line(self):
+        path = check_style.ROOT / "probe.py"
+        errors = []
+        with patch(
+            "pathlib.Path.read_bytes",
+            return_value=b"first\nsecond\r\n",
+        ):
+            check_style.decode_source(path, errors)
+
+        self.assertTrue(any("probe.py:2" in item for item in errors))
+        self.assertFalse(any("probe.py:1" in item for item in errors))
+
+    def test_function_length_includes_decorator(self):
+        path = check_style.ROOT / "probe.py"
+        source = (
+            '"""Module."""\n\n@decorator\ndef public():\n'
+            '    """Public function."""\n'
+            + "    pass\n" * 48
+        )
+        errors = []
+
+        check_style.check_ast(path, source, errors)
+
+        self.assertTrue(any("50줄" in item for item in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -44,13 +44,16 @@ test_patterns_must_be_mapping (test_simulator.JsonAnalysisTests.test_patterns_mu
 test_static_data_contains_six_passing_cases (test_simulator.JsonAnalysisTests.test_static_data_contains_six_passing_cases) ... ok
 test_valid_cases_pass_with_normalized_labels (test_simulator.JsonAnalysisTests.test_valid_cases_pass_with_normalized_labels) ... ok
 test_control_flow_string_is_not_a_docstring (test_style.StyleCheckerTests.test_control_flow_string_is_not_a_docstring) ... ok
+test_crlf_reports_its_actual_line (test_style.StyleCheckerTests.test_crlf_reports_its_actual_line) ... ok
 test_empty_discovery_returns_failure (test_style.StyleCheckerTests.test_empty_discovery_returns_failure) ... ok
+test_function_length_includes_decorator (test_style.StyleCheckerTests.test_function_length_includes_decorator) ... ok
 test_indent_check_allows_alignment_but_rejects_wide_suite (test_style.StyleCheckerTests.test_indent_check_allows_alignment_but_rejects_wide_suite) ... ok
+test_inline_comment_uses_code_line_limit (test_style.StyleCheckerTests.test_inline_comment_uses_code_line_limit) ... ok
 test_invalid_utf8_reports_line_number (test_style.StyleCheckerTests.test_invalid_utf8_reports_line_number) ... ok
 test_overlong_line_returns_failure_with_location (test_style.StyleCheckerTests.test_overlong_line_returns_failure_with_location) ... ok
 
 ----------------------------------------------------------------------
-Ran 41 tests in 0.017s
+Ran 44 tests in 0.041s
 
 OK
 [PASS] data.json 6/6
@@ -67,15 +70,17 @@ $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
      python scripts/check_style.py && \
      python -m unittest discover -s tests -v && \
      python -m scripts.check_data && \
-     printf "" | python main.py | grep -q "안전하게 종료"'
+     task_output=$(mktemp) && \
+     printf "" | python main.py >"$task_output" && \
+     grep -q "안전하게 종료" "$task_output"'
 Python 3.8.20
 Style check: PASS (11 files, Python 3.8+)
-Ran 41 tests in 0.029s
+Ran 44 tests in 0.088s
 OK
 [PASS] data.json 6/6
 [PASS] Python 3.8 EOF 안전 종료
 
-[이전 공개 기준선의 원격 검증 기록 — 현재 로컬 보강은 push 전]
+[이전 공개 기준선 b61f468의 원격 검증 기록 — 현재 로컬 보강은 push 전]
 
 $ make verify-remote
 [PASS] PUBLIC/main/HEAD 일치
