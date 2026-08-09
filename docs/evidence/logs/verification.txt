@@ -30,6 +30,7 @@ test_difference_exactly_epsilon_is_not_tie (test_npu.PolicyTests.test_difference
 test_even_pattern_size_is_rejected (test_npu.PolicyTests.test_even_pattern_size_is_rejected) ... ok
 test_label_normalization (test_npu.PolicyTests.test_label_normalization) ... ok
 test_bonus_compares_all_sizes_with_same_repetitions (test_simulator.ExtractionAndPerformanceTests.test_bonus_compares_all_sizes_with_same_repetitions) ... ok
+test_data_check_uses_project_file_outside_working_directory (test_simulator.ExtractionAndPerformanceTests.test_data_check_uses_project_file_outside_working_directory) ... ok
 test_extract_pattern_size (test_simulator.ExtractionAndPerformanceTests.test_extract_pattern_size) ... ok
 test_performance_has_required_sizes_and_repetitions (test_simulator.ExtractionAndPerformanceTests.test_performance_has_required_sizes_and_repetitions) ... ok
 test_bad_case_does_not_stop_following_case (test_simulator.JsonAnalysisTests.test_bad_case_does_not_stop_following_case) ... ok
@@ -42,13 +43,14 @@ test_missing_filter_only_fails_related_case (test_simulator.JsonAnalysisTests.te
 test_patterns_must_be_mapping (test_simulator.JsonAnalysisTests.test_patterns_must_be_mapping) ... ok
 test_static_data_contains_six_passing_cases (test_simulator.JsonAnalysisTests.test_static_data_contains_six_passing_cases) ... ok
 test_valid_cases_pass_with_normalized_labels (test_simulator.JsonAnalysisTests.test_valid_cases_pass_with_normalized_labels) ... ok
+test_control_flow_string_is_not_a_docstring (test_style.StyleCheckerTests.test_control_flow_string_is_not_a_docstring) ... ok
 test_empty_discovery_returns_failure (test_style.StyleCheckerTests.test_empty_discovery_returns_failure) ... ok
 test_indent_check_allows_alignment_but_rejects_wide_suite (test_style.StyleCheckerTests.test_indent_check_allows_alignment_but_rejects_wide_suite) ... ok
 test_invalid_utf8_reports_line_number (test_style.StyleCheckerTests.test_invalid_utf8_reports_line_number) ... ok
 test_overlong_line_returns_failure_with_location (test_style.StyleCheckerTests.test_overlong_line_returns_failure_with_location) ... ok
 
 ----------------------------------------------------------------------
-Ran 39 tests in 0.014s
+Ran 41 tests in 0.017s
 
 OK
 [PASS] data.json 6/6
@@ -68,7 +70,7 @@ $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
      printf "" | python main.py | grep -q "안전하게 종료"'
 Python 3.8.20
 Style check: PASS (11 files, Python 3.8+)
-Ran 39 tests in 0.025s
+Ran 41 tests in 0.029s
 OK
 [PASS] data.json 6/6
 [PASS] Python 3.8 EOF 안전 종료

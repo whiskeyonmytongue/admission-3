@@ -105,6 +105,11 @@ def docstring_lines(source: str) -> Set[int]:
     nodes = [tree]
     nodes.extend(ast.walk(tree))
     for node in nodes:
+        if not isinstance(
+            node,
+            (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef),
+        ):
+            continue
         body = getattr(node, "body", None)
         if not body or not isinstance(body, list):
             continue

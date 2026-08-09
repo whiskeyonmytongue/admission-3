@@ -30,7 +30,7 @@ cli-check:
 		printf '' | PYTHONDONTWRITEBYTECODE=1 $(PYTHON) main.py \
 			>"$$task_output"; \
 		cli_status=$$?; \
-		test "$$cli_status" -eq 0; \
+		test "$$cli_status" -eq 0 && \
 		grep -q '안전하게 종료' "$$task_output"
 	@echo "[PASS] EOF 안전 종료"
 

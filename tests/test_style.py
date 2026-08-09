@@ -57,6 +57,17 @@ class StyleCheckerTests(unittest.TestCase):
 
         self.assertTrue(any("probe.py:2" in item for item in errors))
 
+    def test_control_flow_string_is_not_a_docstring(self):
+        path = check_style.ROOT / "probe.py"
+        source = '"""Module."""\nif True:\n    "{0}"\n'.format(
+            "x" * 70
+        )
+        errors = []
+
+        check_style.check_python_lines(path, source, errors)
+
+        self.assertEqual(errors, [])
+
 
 if __name__ == "__main__":
     unittest.main()
