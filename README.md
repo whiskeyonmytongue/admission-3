@@ -50,12 +50,6 @@ make verify PYTHON=python3.8
 | Python 3.8·3.14 실행 | 각각 75개 PASS | 공식 Python 컨테이너 |
 | Python 스타일 | PASS | `make style` |
 
-실제로 실행한 출력은 아래 로그에 남겼습니다.
-
-- [3×3 수동 입력](docs/evidence/logs/manual-mode.txt)
-- [JSON 6개 케이스와 성능 분석](docs/evidence/logs/json-analysis.txt)
-- [Python 3.8·3.14 자동 검증](docs/evidence/logs/verification.txt)
-
 ## 데이터 구성
 
 [data.json](data.json)은 과제에서 제공한 `version: 1.0`, `type: json` 데이터입니다.
@@ -125,9 +119,8 @@ JSON 데이터는 아래 순서로 분석합니다.
 | 13×13 | 0.059192 | 169 |
 | 25×25 | 0.211747 | 625 |
 
-측정값은 2026-08-09 로컬 환경에서 얻었습니다. 실행 시간은 CPU 상태에 따라
-달라집니다. 원본 출력은
-[JSON 분석 로그](docs/evidence/logs/json-analysis.txt)에 남겼습니다.
+측정값은 2026-08-09 Python 3.8 컨테이너에서 얻었습니다. 실행 시간은 CPU
+상태에 따라 달라집니다.
 
 ## 결과 리포트
 
@@ -199,8 +192,7 @@ make bonus
 | 점수 차이 `< 1e-9` | `UNDECIDED`로 판정 |
 | 짝수 패턴 생성 요청 | 홀수 크기 안내 후 종료 코드 1 |
 
-의도적으로 손상한 입력까지 검사한 테스트 목록은
-[자동 검증 로그](docs/evidence/logs/verification.txt)에 기록했습니다.
+의도적으로 손상한 입력까지 검사한 테스트 목록은 `make test`로 확인합니다.
 
 ## 자동 검증
 
@@ -241,6 +233,5 @@ make verify-remote PYTHON=python3.8
 ├── scripts/check_syntax.py         # 전체 Python 파일 구문 검사
 ├── scripts/verify_remote.py        # PUBLIC/main/HEAD 검증
 ├── .github/workflows/verify.yml    # Python 3.8·3.14 CI
-├── docs/evidence/logs/             # 실제 실행 출력
 └── Makefile                        # 로컬·원격 검증 진입점
 ```
