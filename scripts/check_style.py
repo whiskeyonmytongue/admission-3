@@ -230,22 +230,39 @@ def function_length(node: ast.AST) -> int:
     return (node.end_lineno or node.lineno) - min(starts) + 1
 
 
+def _comprehension_body_roots(node: ast.AST) -> Iterable[ast.AST]:
+    if isinstance(node, ast.DictComp):
+        yield node.key
+        yield node.value
+    else:
+        yield node.elt
+    for index, generator in enumerate(node.generators):
+        if index > 0:
+            yield generator.iter
+        for condition in generator.ifs:
+            yield condition
+
+
+def _is_async_comprehension(node: ast.AST) -> bool:
+    if any(generator.is_async for generator in node.generators):
+        return True
+    return any(isinstance(child, ast.Await) for child in ast.walk(node))
+
+
 def target_context_error_line(tree: ast.Module) -> Optional[int]:
-    """목표 버전에서 금지된 컴파일 문맥의 첫 줄을 반환한다."""
+    """목표 버전에서 금지된 중첩 비동기 문맥의 첫 줄을 반환한다."""
     if PYTHON_VERSION >= (3, 11):
         return None
+    lines = []  # type: List[int]
     for outer in ast.walk(tree):
         if not isinstance(outer, COMPREHENSION_NODES):
             continue
-        for nested in ast.walk(outer):
-            if nested is outer or not isinstance(
-                nested,
-                COMPREHENSION_NODES,
-            ):
-                continue
-            if any(generator.is_async for generator in nested.generators):
-                return nested.lineno
-    return None
+        for root in _comprehension_body_roots(outer):
+            for nested in ast.walk(root):
+                if isinstance(nested, COMPREHENSION_NODES):
+                    if _is_async_comprehension(nested):
+                        lines.append(nested.lineno)
+    return min(lines) if lines else None
 
 
 def check_target_context(

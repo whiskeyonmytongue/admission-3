@@ -123,6 +123,37 @@ class StyleCheckerTests(unittest.TestCase):
 
         self.assertTrue(any("문법 오류" in item for item in errors))
 
+    def test_target_context_matches_legacy_comprehension_scope(self):
+        path = check_style.ROOT / "probe.py"
+        valid = (
+            '\"\"\"Module.\"\"\"\nasync def public():\n'
+            '    \"\"\"Use an async first iterable.\"\"\"\n'
+            "    return [x for x in [y async for y in items]]\n"
+        )
+        invalid_await = (
+            '\"\"\"Module.\"\"\"\nasync def public():\n'
+            '    \"\"\"Nest an awaited comprehension.\"\"\"\n'
+            "    return [[await call(y) for y in ys] for x in xs]\n"
+        )
+        ordered = (
+            '\"\"\"Module.\"\"\"\nasync def public():\n'
+            '    \"\"\"Contain two invalid contexts.\"\"\"\n'
+            "    return (call([[[x async for x in a] for y in b] "
+            "for z in c]),\n"
+            "            [[x async for x in a] for y in b])\n"
+        )
+
+        valid_errors = []
+        check_style.check_ast(path, valid, valid_errors)
+        await_errors = []
+        check_style.check_ast(path, invalid_await, await_errors)
+        ordered_errors = []
+        check_style.check_ast(path, ordered, ordered_errors)
+
+        self.assertEqual(valid_errors, [])
+        self.assertTrue(any("probe.py:4" in item for item in await_errors))
+        self.assertTrue(any("probe.py:4" in item for item in ordered_errors))
+
 
 if __name__ == "__main__":
     unittest.main()

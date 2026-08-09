@@ -100,6 +100,39 @@ class JsonAnalysisTests(unittest.TestCase):
         self.assertIn("float 범위", report["results"][0]["reason"])
         self.assertEqual(report["results"][1]["status"], "PASS")
 
+    def test_huge_json_integer_is_stable_and_json_safe(self):
+        huge_integer = "9" * 5000
+        document = (
+            '{"filters":{"size_2":{"cross":[[1,0],[0,1]],'
+            '"x":[[0,1],[1,0]]}},"patterns":{'
+            '"size_2_bad":{"input":[['
+            + huge_integer
+            + ']],"expected":"cross"}},"_meta":{"n":'
+            + huge_integer
+            + "}}"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "huge-metadata.json"
+            path.write_text(document, encoding="utf-8")
+            data = load_json_file(path)
+            default_reason = analyze_data(data)["results"][0]["reason"]
+            json.dumps(data)
+            setter = getattr(sys, "set_int_max_str_digits", None)
+            getter = getattr(sys, "get_int_max_str_digits", None)
+            if setter is not None and getter is not None:
+                previous_limit = getter()
+                try:
+                    setter(0)
+                    unlimited_reason = analyze_data(
+                        load_json_file(path)
+                    )["results"][0]["reason"]
+                finally:
+                    setter(previous_limit)
+                self.assertEqual(unlimited_reason, default_reason)
+
+        self.assertIsInstance(data["_meta"]["n"], int)
+        self.assertIn("크기 불일치", default_reason)
+
     def test_malformed_schema_is_reported_per_case(self):
         data = valid_data()
         data["patterns"] = {

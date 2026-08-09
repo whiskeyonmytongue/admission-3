@@ -13,8 +13,8 @@
 | 3·5·13·25 성능 측정 | 각 10회 평균 | JSON 실행 결과의 성능 표 |
 | 1D 메모리 접근 비교 | 완료 | `make bonus` |
 | 홀수 N 패턴 생성 | 완료 | `python3 main.py --generate 5` |
-| 자동 테스트 | 47개 PASS | `make verify` |
-| Python 3.8 실행 | 47개 PASS | 로컬 공식 3.8 컨테이너 |
+| 자동 테스트 | 49개 PASS | `make verify` |
+| Python 3.8 실행 | 49개 PASS | 로컬 공식 3.8 컨테이너 |
 | Python 스타일 | PASS | `make style` |
 
 실행 당시의 전체 출력은 [수동 입력 로그](docs/evidence/logs/manual-mode.txt), [JSON 분석 로그](docs/evidence/logs/json-analysis.txt), [자동 검증 로그](docs/evidence/logs/verification.txt)에 보존했습니다.
@@ -147,12 +147,12 @@ JSON 분석 흐름은 다음과 같습니다.
 ## 테스트 범위
 
 `make verify`는 Python 구문 컴파일, PEP 8·257 기반 공통 스타일 규칙,
-unittest 47개, 합성 데이터 6/6, EOF 안전 종료를 순서대로 확인합니다. 스타일
+unittest 49개, 합성 데이터 6/6, EOF 안전 종료를 순서대로 확인합니다. 스타일
 검사는 UTF-8·LF·마지막 개행·공백·줄 길이(코드 79자, 주석과 docstring
 72자)·공개 API docstring·50줄 초과 함수·Python 3.8 AST와 컴파일 문맥을 표준
 라이브러리만 사용해 검사합니다.
 
-로컬에서는 공식 `python:3.8-slim`의 Python 3.8.20으로 같은 47개 테스트를
+로컬에서는 공식 `python:3.8-slim`의 Python 3.8.20으로 같은 49개 테스트를
 다시 통과시켰습니다. 테스트에는 malformed matrix/schema, 잘못된 최상위
 `filters`, float 범위를 넘는 정수, NaN·무한대 행 재입력, 과도한 JSON 중첩,
 epsilon 경계, 정적 6개 케이스, 전체 `--json` 성공·실패·누락 경계, 메뉴·행
