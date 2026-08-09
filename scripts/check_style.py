@@ -15,6 +15,12 @@ CODE_LINE_LIMIT = 79
 TEXT_LINE_LIMIT = 72
 MAKE_LINE_LIMIT = 100
 FUNCTION_LINE_LIMIT = 50
+COMPREHENSION_NODES = (
+    ast.ListComp,
+    ast.SetComp,
+    ast.DictComp,
+    ast.GeneratorExp,
+)
 
 
 def source_paths() -> List[Path]:
@@ -224,6 +230,42 @@ def function_length(node: ast.AST) -> int:
     return (node.end_lineno or node.lineno) - min(starts) + 1
 
 
+def target_context_error_line(tree: ast.Module) -> Optional[int]:
+    """목표 버전에서 금지된 컴파일 문맥의 첫 줄을 반환한다."""
+    if PYTHON_VERSION >= (3, 11):
+        return None
+    for outer in ast.walk(tree):
+        if not isinstance(outer, COMPREHENSION_NODES):
+            continue
+        for nested in ast.walk(outer):
+            if nested is outer or not isinstance(
+                nested,
+                COMPREHENSION_NODES,
+            ):
+                continue
+            if any(generator.is_async for generator in nested.generators):
+                return nested.lineno
+    return None
+
+
+def check_target_context(
+    path: Path,
+    tree: ast.Module,
+    errors: List[str],
+) -> bool:
+    """목표 버전 컴파일 문맥을 검사하고 통과 여부를 반환한다."""
+    line = target_context_error_line(tree)
+    if line is None:
+        return True
+    add_error(
+        errors,
+        path,
+        line,
+        "Python {0}.{1} 문법 오류".format(*PYTHON_VERSION),
+    )
+    return False
+
+
 def check_ast(path: Path, source: str, errors: List[str]) -> None:
     """최소 Python 문법, docstring, 함수 길이를 검사한다."""
     try:
@@ -232,6 +274,8 @@ def check_ast(path: Path, source: str, errors: List[str]) -> None:
             filename=str(path),
             feature_version=PYTHON_VERSION,
         )
+        if not check_target_context(path, tree, errors):
+            return
         compile(source, str(path), "exec", dont_inherit=True)
     except SyntaxError as error:
         add_error(

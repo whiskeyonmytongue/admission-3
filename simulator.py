@@ -22,11 +22,24 @@ PATTERN_KEY = re.compile(r"^size_(\d+)_(.+)$")
 PERFORMANCE_SIZES = (3, 5, 13, 25)
 
 
+_OVERSIZED_JSON_INTEGER = object()
+
+
 def _parse_json_integer(raw_value: str) -> object:
     try:
         return int(raw_value)
     except ValueError:
-        return raw_value
+        return _OVERSIZED_JSON_INTEGER
+
+
+def _validate_json_matrix(matrix: object, size: int) -> Matrix:
+    if isinstance(matrix, list):
+        for row in matrix:
+            if not isinstance(row, list):
+                continue
+            if any(value is _OVERSIZED_JSON_INTEGER for value in row):
+                raise ValueError("행렬 원소가 float 범위를 벗어났습니다.")
+    return validate_matrix(matrix, size)
 
 
 def load_json_file(path: Path) -> Dict[str, Any]:
@@ -99,9 +112,9 @@ def _case_matrices(
         raise ValueError("{0} 필터가 없습니다.".format(filter_key))
     filters = _normalized_filters(raw_filters[filter_key], size)
     return (
-        validate_matrix(raw_case["input"], size),
-        validate_matrix(filters["Cross"], size),
-        validate_matrix(filters["X"], size),
+        _validate_json_matrix(raw_case["input"], size),
+        _validate_json_matrix(filters["Cross"], size),
+        _validate_json_matrix(filters["X"], size),
         normalize_label(raw_case["expected"]),
     )
 

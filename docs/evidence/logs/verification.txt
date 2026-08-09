@@ -53,9 +53,10 @@ test_indent_check_allows_alignment_but_rejects_wide_suite (test_style.StyleCheck
 test_inline_comment_uses_code_line_limit (test_style.StyleCheckerTests.test_inline_comment_uses_code_line_limit) ... ok
 test_invalid_utf8_reports_line_number (test_style.StyleCheckerTests.test_invalid_utf8_reports_line_number) ... ok
 test_overlong_line_returns_failure_with_location (test_style.StyleCheckerTests.test_overlong_line_returns_failure_with_location) ... ok
+test_target_version_nested_async_context_fails (test_style.StyleCheckerTests.test_target_version_nested_async_context_fails) ... ok
 
 ----------------------------------------------------------------------
-Ran 46 tests in 0.044s
+Ran 47 tests in 0.042s
 
 OK
 [PASS] data.json 6/6
@@ -79,7 +80,7 @@ $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
 [컨테이너 출력 요약]
 Python 3.8.20
 Style check: PASS (11 files, Python 3.8+)
-Ran 46 tests in 0.078s
+Ran 47 tests in 0.043s
 OK
 [PASS] data.json 6/6
 [PASS] Python 3.8 EOF 안전 종료

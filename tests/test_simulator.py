@@ -97,6 +97,7 @@ class JsonAnalysisTests(unittest.TestCase):
             (report["total"], report["passed"], report["failed"]),
             (2, 1, 1),
         )
+        self.assertIn("float 범위", report["results"][0]["reason"])
         self.assertEqual(report["results"][1]["status"], "PASS")
 
     def test_malformed_schema_is_reported_per_case(self):
