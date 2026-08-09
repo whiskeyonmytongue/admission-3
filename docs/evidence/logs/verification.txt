@@ -8,9 +8,9 @@ $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
 Runtime check: PASS (Python 3.8)
 Syntax check: PASS (14 files)
 Style check: PASS (15 files, Python 3.8+)
-Ran 74 tests in 0.063s
+Ran 75 tests in 0.072s
 OK
-[PASS] data.json 6/6
+[PASS] 공식 data.json: 6개 중 3 PASS, 3 FAIL(예상 동점)
 [PASS] EOF 안전 종료
 [PASS] 로컬 필수·보너스 검증 완료
 
@@ -21,19 +21,21 @@ $ docker run --rm -e PYTHONPYCACHEPREFIX=/tmp/pycache \
 
 Syntax check: PASS (14 files)
 Style check: PASS (15 files, Python 3.8+)
-Ran 74 tests in 0.044s
+Ran 75 tests in 0.093s
 OK
-[PASS] data.json 6/6
+[PASS] 공식 data.json: 6개 중 3 PASS, 3 FAIL(예상 동점)
 [PASS] EOF 안전 종료
 
 전체 테스트 이름은 `make test`에서 확인할 수 있다. 위 기록은 출력의 핵심
 결과를 보존한 요약이며, 테스트 수·실행 시간·검증 파일 수는 실제 컨테이너
 출력에서 옮겼다.
 
-[검증 기록 작성 시점의 원격 기준선]
+[데이터 무결성]
 
-PUBLIC/main 및 HEAD b61f468 일치: PASS
+과제 data.json의 의미 기반 SHA-256:
+215fe11081ef87c6c0b67399cbcbf0abcdebe26e15a2fb46ede5d9047e900618
 
-위 원격 값은 기록 작성 시점의 기준선이다. 최종 제출에서는 새 커밋을 push한 뒤
-`make verify-remote PYTHON=python3.8`로 정확한 저장소 URL, PUBLIC 여부,
-기본 브랜치와 로컬·원격 main HEAD 일치를 다시 확인한다.
+[원격 작업]
+
+사용자 요청에 따라 이번 변경은 로컬에서만 수행했으며 push와 원격 검증을
+실행하지 않았다.

@@ -68,14 +68,16 @@ class CliTests(unittest.TestCase):
         self.assertEqual(matrix, [[3.0]])
         self.assertEqual("\n".join(lines).count("유한한 숫자"), 2)
 
-    def test_json_option_reports_success(self):
+    def test_json_option_reports_official_summary(self):
         captured_out = io.StringIO()
         data_path = Path(__file__).parents[1] / "data.json"
         with patch("sys.stdout", captured_out):
             result = main.main(["--json", str(data_path)])
 
-        self.assertEqual(result, 0)
-        self.assertIn("통과: 6개", captured_out.getvalue())
+        self.assertEqual(result, 1)
+        self.assertIn("통과: 3개", captured_out.getvalue())
+        self.assertIn("실패: 3개", captured_out.getvalue())
+        self.assertIn("size_5_1", captured_out.getvalue())
 
     def test_interactive_default_json_path_is_project_stable(self):
         answers = iter(["2", ""])

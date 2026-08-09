@@ -31,14 +31,30 @@ def valid_data():
 
 
 class JsonAnalysisTests(unittest.TestCase):
-    def test_static_data_contains_six_passing_cases(self):
+    def test_static_data_matches_official_expected_report(self):
         project_data = load_json_file(Path(__file__).parents[1] / "data.json")
         report = analyze_data(project_data)
         self.assertEqual(
             (report["total"], report["passed"], report["failed"]),
-            (6, 6, 0),
+            (6, 3, 3),
         )
-        self.assertFalse(project_data["_meta"]["official_attachment"])
+        failures = {
+            result["id"]
+            for result in report["results"]
+            if result["status"] == "FAIL"
+        }
+        self.assertEqual(failures, check_data.EXPECTED_FAILURES)
+        for result in report["results"]:
+            if result["id"] in check_data.EXPECTED_FAILURES:
+                self.assertEqual(result["predicted"], "UNDECIDED")
+                self.assertEqual(
+                    result["reason"],
+                    check_data.EXPECTED_TIE_REASON,
+                )
+        self.assertEqual(
+            project_data["meta"],
+            {"version": "1.0", "type": "json"},
+        )
 
     def test_valid_cases_pass_with_normalized_labels(self):
         report = analyze_data(valid_data())
@@ -331,7 +347,7 @@ class ExtractionAndPerformanceTests(unittest.TestCase):
             )
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertIn("[PASS] data.json 6/6", completed.stdout)
+        self.assertIn("3 PASS, 3 FAIL(예상 동점)", completed.stdout)
 
     def test_extract_pattern_size(self):
         self.assertEqual(extract_pattern_size("size_25_6"), 25)
@@ -348,6 +364,13 @@ class ExtractionAndPerformanceTests(unittest.TestCase):
         data["patterns"].pop("size_25_2")
 
         with self.assertRaisesRegex(ValueError, "케이스 ID"):
+            check_data.validate_dataset(data)
+
+    def test_data_check_rejects_changed_official_value(self):
+        data = load_json_file(check_data.DATA_PATH)
+        data["patterns"]["size_25_2"]["input"][0][0] = 99
+
+        with self.assertRaisesRegex(ValueError, "내용 해시"):
             check_data.validate_dataset(data)
 
     def test_performance_has_required_sizes_and_repetitions(self):
