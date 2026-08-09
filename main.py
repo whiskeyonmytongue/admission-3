@@ -18,6 +18,7 @@ from simulator import (
     bonus_comparison_rows,
     load_json_file,
     performance_rows,
+    reject_control_characters,
 )
 
 
@@ -150,6 +151,7 @@ def _filter_sizes(data: object) -> List[str]:
 
 def run_json(path: Path, output_fn: Output, repetitions: int = 10) -> int:
     """JSON의 전체 케이스와 성능 분석 결과를 출력한다."""
+    reject_control_characters("JSON 경로", str(path))
     data = load_json_file(path)
     output_fn("\n[1] 필터 로드")
     output_fn("파일: {0}".format(path))

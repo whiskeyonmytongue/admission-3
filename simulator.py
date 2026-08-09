@@ -4,6 +4,7 @@ import json
 import math
 import re
 import sys
+import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -27,6 +28,26 @@ MAX_PARSED_INTEGER_DIGITS = 640
 
 
 _FLOAT_OVERFLOW_SENTINEL = 10 ** 400
+
+
+def reject_control_characters(label: str, value: str) -> None:
+    """터미널 출력을 바꿀 수 있는 Unicode 제어문자를 거부한다."""
+    if any(unicodedata.category(character) == "Cc" for character in value):
+        raise ValueError(
+            "{0}에 제어 문자를 사용할 수 없습니다.".format(label)
+        )
+
+
+def _unique_json_object(
+    pairs: List[Tuple[str, Any]],
+) -> Dict[str, Any]:
+    result = {}  # type: Dict[str, Any]
+    for key, value in pairs:
+        reject_control_characters("JSON 객체 키", key)
+        if key in result:
+            raise ValueError("중복 JSON 키: {0!r}".format(key))
+        result[key] = value
+    return result
 
 
 class _OutOfRangeJsonNumber:
@@ -130,6 +151,7 @@ def load_json_file(path: Path) -> Dict[str, Any]:
                 parse_int=_parse_json_integer,
                 parse_float=_parse_json_float,
                 parse_constant=_reject_json_constant,
+                object_pairs_hook=_unique_json_object,
             )
     except (OSError, ValueError, RecursionError) as error:
         raise ValueError("JSON 파일을 읽을 수 없습니다: {0}".format(error))

@@ -134,6 +134,51 @@ class CliTests(unittest.TestCase):
         self.assertIn("필터 키 발견", output)
         self.assertNotIn("✓", output)
 
+    def test_json_control_key_is_rejected_without_terminal_output(self):
+        document = (
+            '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
+            '"patterns":{"size_1_\\u001b]52;c;VEVTVA==\\u0007":'
+            '{"input":[[1]],"expected":"cross"}}}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "control-key.json"
+            path.write_text(document, encoding="utf-8")
+            captured_out = io.StringIO()
+            captured_err = io.StringIO()
+            with patch("sys.stdout", captured_out), patch(
+                "sys.stderr",
+                captured_err,
+            ):
+                result = main.main(["--json", str(path)])
+
+        rendered = captured_out.getvalue() + captured_err.getvalue()
+        self.assertEqual(result, 1)
+        self.assertIn("제어 문자", captured_err.getvalue())
+        self.assertNotIn("\x1b", rendered)
+        self.assertNotIn("\x07", rendered)
+
+    def test_json_control_path_is_rejected_without_terminal_output(self):
+        project_data = Path(__file__).parents[1] / "data.json"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "unsafe-\x1b]52;c;VEVTVA==\x07.json"
+            path.write_text(
+                project_data.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            captured_out = io.StringIO()
+            captured_err = io.StringIO()
+            with patch("sys.stdout", captured_out), patch(
+                "sys.stderr",
+                captured_err,
+            ):
+                result = main.main(["--json", str(path)])
+
+        rendered = captured_out.getvalue() + captured_err.getvalue()
+        self.assertEqual(result, 1)
+        self.assertIn("JSON 경로", captured_err.getvalue())
+        self.assertNotIn("\x1b", rendered)
+        self.assertNotIn("\x07", rendered)
+
     def test_json_option_reports_missing_file(self):
         captured_out = io.StringIO()
         captured_err = io.StringIO()

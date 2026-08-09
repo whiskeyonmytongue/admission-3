@@ -221,6 +221,19 @@ class JsonAnalysisTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "JSON 파일"):
                         load_json_file(path)
 
+    def test_duplicate_json_keys_are_rejected(self):
+        document = (
+            '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
+            '"patterns":{"size_1_1":{"input":[[1]],'
+            '"expected":"x","expected":"cross"}}}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "duplicate-key.json"
+            path.write_text(document, encoding="utf-8")
+
+            with self.assertRaisesRegex(ValueError, "중복 JSON 키"):
+                load_json_file(path)
+
     def test_overflowing_float_metadata_is_rejected(self):
         document = '{"filters":{},"patterns":{},"_meta":{"n":1e999}}'
         with tempfile.TemporaryDirectory() as directory:
