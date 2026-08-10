@@ -91,6 +91,21 @@ JSON 데이터는 아래 순서로 분석합니다.
 
 ## 실제 실행 결과
 
+### 수동 3×3 판정
+
+Cross 모양을 필터 A, X 모양을 필터 B로 입력한 뒤 X 패턴을 판정했습니다.
+B 점수가 5로 A 점수 1보다 높아 `B`로 판정됩니다.
+
+![3×3 필터와 패턴을 직접 입력한 터미널 실행 화면](docs/evidence/images/manual-mode.png)
+
+### 공식 JSON 일괄 분석
+
+아래 화면은 `python3 main.py --json data.json`을 실제로 실행한 결과입니다.
+6개 케이스의 판정, N² 연산 횟수, 2D/1D 보너스 비교와 최종 집계를 한 번에
+확인할 수 있습니다.
+
+![공식 data.json 6개 케이스를 분석한 터미널 실행 화면](docs/evidence/images/json-analysis.png)
+
 공식 데이터 6개를 실행한 결과입니다.
 
 ```text
@@ -232,6 +247,7 @@ make verify-remote PYTHON=python3.8
 ├── scripts/check_style.py          # 스타일·docstring·Python 3.8 검사
 ├── scripts/check_syntax.py         # 전체 Python 파일 구문 검사
 ├── scripts/verify_remote.py        # PUBLIC/main/HEAD 검증
+├── docs/evidence/images/           # 실제 터미널 실행 화면
 ├── .github/workflows/verify.yml    # Python 3.8·3.14 CI
 └── Makefile                        # 로컬·원격 검증 진입점
 ```
