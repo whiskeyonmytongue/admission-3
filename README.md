@@ -1,4 +1,4 @@
-# Mini NPU Simulator
+# AI가 계산하는 방식을 흉내 내는 작은 계산기 만들기
 
 [![verify](https://github.com/whiskeyonmytongue/admission-3/actions/workflows/verify.yml/badge.svg)](https://github.com/whiskeyonmytongue/admission-3/actions/workflows/verify.yml)
 
