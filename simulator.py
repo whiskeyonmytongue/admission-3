@@ -5,6 +5,7 @@ import math
 import re
 import sys
 import unicodedata
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -32,7 +33,7 @@ _FLOAT_OVERFLOW_SENTINEL = 10 ** 400
 
 def reject_control_characters(label: str, value: str) -> None:
     """터미널 제어 문자와 UTF-8로 출력할 수 없는 surrogate를 거부한다."""
-    unsafe_categories = {"Cc", "Cs"}
+    unsafe_categories = {"Cc", "Cf", "Cs"}
     if any(
         unicodedata.category(character) in unsafe_categories
         for character in value
@@ -82,6 +83,13 @@ def _parse_json_float(raw_value: str) -> object:
     value = float(raw_value)
     if not math.isfinite(value):
         return _OutOfRangeJsonNumber(raw_value.startswith("-"))
+    if value == 0.0:
+        try:
+            is_nonzero = Decimal(raw_value) != 0
+        except InvalidOperation:
+            is_nonzero = True
+        if is_nonzero:
+            return _OutOfRangeJsonNumber(raw_value.startswith("-"))
     return value
 
 

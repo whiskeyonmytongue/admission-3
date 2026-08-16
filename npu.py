@@ -6,6 +6,8 @@ from typing import Callable, Dict, List, Tuple
 
 
 EPSILON = 1e-9
+MAX_PATTERN_SIZE = 100
+MAX_REPETITIONS = 10000
 Matrix = List[List[float]]
 
 
@@ -139,9 +141,16 @@ def compare_scores(
     epsilon: float = EPSILON,
 ) -> str:
     """차이가 epsilon보다 작을 때만 동점으로 판정한다."""
-    if not all(math.isfinite(value) for value in (first_score, second_score)):
+    try:
+        finite_scores = all(
+            math.isfinite(value) for value in (first_score, second_score)
+        )
+        finite_epsilon = math.isfinite(epsilon)
+    except (TypeError, OverflowError):
+        raise ValueError("점수와 epsilon은 유한한 숫자여야 합니다.")
+    if not finite_scores:
         raise ValueError("점수는 유한한 숫자여야 합니다.")
-    if epsilon <= 0.0 or not math.isfinite(epsilon):
+    if epsilon <= 0.0 or not finite_epsilon:
         raise ValueError("epsilon은 0보다 큰 유한한 숫자여야 합니다.")
     difference = abs(first_score - second_score)
     if difference < epsilon:
@@ -169,6 +178,10 @@ def generate_patterns(size: int) -> Tuple[Matrix, Matrix]:
         raise ValueError("크기는 0보다 큰 홀수 정수여야 합니다.")
     if size % 2 == 0:
         raise ValueError("중앙선이 하나인 패턴을 위해 홀수 크기만 지원합니다.")
+    if size > MAX_PATTERN_SIZE:
+        raise ValueError(
+            "패턴 크기는 {0} 이하만 지원합니다.".format(MAX_PATTERN_SIZE)
+        )
 
     center = size // 2
     cross = []  # type: Matrix
@@ -210,3 +223,7 @@ def _validate_repetitions(repetitions: int) -> None:
         or repetitions < 1
     ):
         raise ValueError("반복 횟수는 1 이상의 정수여야 합니다.")
+    if repetitions > MAX_REPETITIONS:
+        raise ValueError(
+            "반복 횟수는 {0} 이하만 지원합니다.".format(MAX_REPETITIONS)
+        )

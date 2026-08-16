@@ -32,14 +32,16 @@ python3 main.py
 python3 main.py --json data.json
 ```
 
-전체 검증은 최소 지원 버전인 Python 3.8에서 실행합니다.
+프로그램은 Python 3.8 이상에서 실행할 수 있습니다. 제출 검증은 GitHub Actions의
+Python 3.8 job에서 항상 실행합니다.
 
 ```bash
-make verify PYTHON=python3.8
+python3.8 main.py --json data.json
 ```
 
 Python 3.8이 없다면 GitHub Actions의 Python 3.8 검증 결과를 확인할 수
-있습니다. 최신 호환성은 Python 3.14에서 별도로 검사합니다.
+있습니다. 최신 호환성은 Python 3.14에서 별도로 검사합니다. 원격 검증까지
+실행하려면 GitHub CLI(`gh`)와 인증된 GitHub 계정도 필요합니다.
 
 ## 구현 결과
 
@@ -48,11 +50,11 @@ Python 3.8이 없다면 GitHub Actions의 Python 3.8 검증 결과를 확인할 
 | 수동 3×3 판정 | PASS | `python3 main.py` |
 | 제공 JSON 판정 | 3 PASS·3 예상 동점 FAIL | `python3 main.py --json data.json` |
 | 3·5·13·25 성능 측정 | 각 10회 평균 | JSON 실행 결과의 성능 표 |
-| 1D 메모리 접근 비교 | 완료 | `make bonus` |
-| 홀수 N 패턴 생성 | 완료 | `make bonus` |
-| 자동 테스트 | 75개 PASS | `make verify PYTHON=python3.8` |
-| Python 3.8·3.14 실행 | 각각 75개 PASS | 공식 Python 컨테이너 |
-| Python 스타일 | PASS | `make style` |
+| 1D 메모리 접근 비교 | 완료 | `python3 main.py --generate 5` |
+| 홀수 N 패턴 생성 | 완료 | `python3 main.py --generate 5` |
+| 자동 테스트 | 81개 PASS | GitHub Actions `verify` workflow |
+| Python 3.8·3.14 실행 | 각각 81개 PASS | 공식 Python 컨테이너 |
+| Python 스타일 | PASS | `python3.8 scripts/check_style.py` |
 
 ## 데이터 구성
 
@@ -212,8 +214,8 @@ Mode 2는 JSON의 expected 라벨과 비교해 전체 결과를 집계해야 하
    expected·필터 검증을 차례로 확인합니다.
 3. 기존 `Cross`·`X` 케이스와 새 `O` 케이스를 함께 넣어 정상 판정, 동점,
    잘못된 라벨을 테스트합니다.
-4. `data.json` 검증 해시와 실행 결과를 갱신하고 `make verify`로 전체 회귀
-   테스트를 실행합니다.
+4. `data.json` 검증 해시와 실행 결과를 갱신하고 GitHub Actions의 `verify`
+   workflow로 전체 회귀 테스트를 실행합니다.
 
 이 순서를 지키면 입력 정규화만 바꾸고 출력이나 집계가 따라오지 않는 부분
 변경을 방지할 수 있습니다.
@@ -224,13 +226,14 @@ Mode 2는 JSON의 expected 라벨과 비교해 전체 결과를 집계해야 하
 같은 반복 횟수로 비교합니다.
 
 ```bash
-make bonus
+python3 main.py --generate 5
 ```
 
 크기를 직접 지정할 때는 `python3 main.py --generate 5`처럼 실행합니다.
-중앙선이 하나로 정해지지 않는 짝수 N은 오류로 처리합니다. 임의의 크기 상한은
-없지만 메모리 사용량과 출력량이 N²으로 늘어나므로 실행 환경에 맞는 값을
-입력해야 합니다.
+중앙선이 하나로 정해지지 않는 짝수 N은 오류로 처리하며, 안전한 메모리·출력을
+위해 N은 100 이하, 홀수 크기만 지원합니다. 따라서 실제 최대 생성 크기는
+99입니다. 큰 N을 추가로 지원하려면 아래의
+스트리밍·블록화 계획을 적용해야 합니다.
 
 ### 큰 N 처리 계획
 
@@ -282,32 +285,45 @@ make bonus
 |---|---|
 | 메뉴에서 1·2 외 입력 | 안내 후 메뉴 재입력 |
 | 수동 입력의 열 수·숫자 오류 | 해당 행 재입력 |
-| EOF 또는 Ctrl+C | traceback 없이 종료 코드 0 |
+| EOF 또는 Ctrl+C | UTF-8 터미널에서 traceback 없이 종료 코드 0 |
 | JSON 문법·최상위 스키마 오류 | 원인을 출력하고 종료 코드 1 |
 | 패턴 케이스 안의 중복 JSON 키 | 해당 케이스만 FAIL, 다음 케이스 계속 실행 |
 | 전역 객체의 중복 JSON 키 | 값을 임의로 고르지 않고 종료 코드 1 |
 | JSON 키·경로의 위험 문자 | 제어 문자·Unicode surrogate를 출력 전에 거부 |
 | `filters`가 객체가 아님 | `filters는 객체여야 합니다`로 원인 명시 |
 | 빈 `patterns` | 처리할 케이스가 없음을 알리고 종료 코드 1 |
-| JSON `NaN`·`Infinity`·float overflow | 오류 또는 해당 케이스 FAIL |
+| JSON `NaN`·`Infinity`·float overflow·underflow | 오류 또는 해당 케이스 FAIL |
 | 패턴 키·라벨·행렬 오류 | 해당 케이스만 FAIL, 다음 케이스 계속 실행 |
 | 점수 차이 `< 1e-9` | `UNDECIDED`로 판정 |
 | 짝수 패턴 생성 요청 | 홀수 크기 안내 후 종료 코드 1 |
 
-의도적으로 손상한 입력까지 검사한 테스트 목록은 `make test`로 확인합니다.
+의도적으로 손상한 입력까지 검사한 테스트 목록은 아래 명령으로 확인합니다.
+
+```bash
+python3.8 -m unittest discover -s tests -v
+```
 
 ## 자동 검증
 
+GitHub Actions의 `verify` workflow는 Python 3.8과 3.14에서 다음 검사를
+자동으로 실행합니다.
+
 ```bash
-make verify PYTHON=python3.8
+python3 scripts/check_runtime.py
+python3 -m scripts.check_syntax
+python3 scripts/check_style.py
+python3 -m unittest discover -s tests -v
+python3 -m scripts.check_data
+printf '' | python3 main.py
 ```
 
-Python 3.8 확인부터 전체 Python 파일의 구문과 스타일 검사, unittest 75개,
+Python 3.8 확인부터 전체 Python 파일의 구문과 스타일 검사, unittest 81개,
 공식 데이터의 3 PASS·3 예상 동점 FAIL, EOF 안전 종료까지 차례로 실행됩니다.
+보너스 2D/1D 비교 함수도 회귀 테스트에 포함됩니다.
 스타일 검사에는 표준 라이브러리만 사용하며 UTF-8·LF·공백·줄 길이·공개 API
 docstring·함수 길이와 Python 3.8 문법을 검사합니다.
 
-공식 `python:3.8-slim`과 `python:3.14-slim`에서 같은 75개 테스트를 모두
+공식 `python:3.8-slim`과 `python:3.14-slim`에서 같은 81개 테스트를 모두
 통과했습니다. GitHub Actions는 Python 3.8 최소 버전과 Python 3.14 호환성을
 나눠 검사합니다. 여기에 쓰는 공식 Action은 검토를 마친 커밋 SHA로
 고정했습니다.
@@ -315,11 +331,11 @@ docstring·함수 길이와 Python 3.8 문법을 검사합니다.
 원격 저장소 상태까지 검사할 때는 아래 명령을 사용합니다.
 
 ```bash
-make verify-remote PYTHON=python3.8
+python3.8 scripts/verify_remote.py
 ```
 
-이 명령은 저장소 URL과 PUBLIC 공개 범위, 기본 브랜치 `main`, 로컬·원격 HEAD
-일치를 검사합니다.
+이 명령은 저장소 URL과 PUBLIC 공개 범위, 현재 브랜치 `main`, 깨끗한 작업 트리,
+로컬·원격 HEAD 일치를 검사합니다. 실행 전 `gh auth status`가 성공해야 합니다.
 
 ## 파일 구성
 
@@ -336,5 +352,4 @@ make verify-remote PYTHON=python3.8
 ├── scripts/verify_remote.py        # PUBLIC/main/HEAD 검증
 ├── docs/evidence/images/           # 실제 터미널 실행 화면
 ├── .github/workflows/verify.yml    # Python 3.8·3.14 CI
-└── Makefile                        # 로컬·원격 검증 진입점
 ```

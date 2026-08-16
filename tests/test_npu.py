@@ -5,6 +5,8 @@ import unittest
 
 from npu import (
     EPSILON,
+    MAX_PATTERN_SIZE,
+    MAX_REPETITIONS,
     benchmark_mac,
     compare_representations,
     compare_scores,
@@ -79,6 +81,21 @@ class PolicyTests(unittest.TestCase):
     def test_even_pattern_size_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "홀수"):
             generate_patterns(4)
+
+    def test_pattern_size_and_repetitions_have_safe_limits(self):
+        with self.assertRaisesRegex(ValueError, "이하"):
+            generate_patterns(MAX_PATTERN_SIZE + 1)
+        with self.assertRaisesRegex(ValueError, "이하"):
+            benchmark_mac(
+                mac_nested,
+                [[1]],
+                [[1]],
+                MAX_REPETITIONS + 1,
+            )
+
+    def test_compare_scores_rejects_unrepresentable_numbers(self):
+        with self.assertRaises(ValueError):
+            compare_scores(10**400, 0, "A", "B")
 
     def test_benchmark_rejects_invalid_repetition(self):
         with self.assertRaises(ValueError):

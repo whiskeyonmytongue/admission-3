@@ -14,12 +14,12 @@ ROOT = Path(__file__).resolve().parents[1]
 PYTHON_VERSION = (3, 8)
 CODE_LINE_LIMIT = 79
 TEXT_LINE_LIMIT = 72
-MAKE_LINE_LIMIT = 100
 FUNCTION_LINE_LIMIT = 50
+EXCLUDED_PARTS = {".agents", ".git", ".venv", "_bmad", "venv"}
 
 
 def source_paths() -> List[Path]:
-    """Git 관리 대상과 새로 만든 Python·Makefile 경로를 반환한다."""
+    """Git 관리 대상과 새로 만든 Python 경로를 반환한다."""
     try:
         output = subprocess.check_output(
             [
@@ -31,7 +31,6 @@ def source_paths() -> List[Path]:
                 "--exclude-standard",
                 "--",
                 "*.py",
-                "Makefile",
             ],
             cwd=ROOT,
             stderr=subprocess.DEVNULL,
@@ -42,29 +41,21 @@ def source_paths() -> List[Path]:
             if item
         ]
     except (OSError, subprocess.CalledProcessError):
-        excluded = {
-            ".agents",
-            ".git",
-            ".venv",
-            "__pycache__",
-            "_bmad",
-            "venv",
-        }
         paths = [
             path
             for path in ROOT.rglob("*.py")
             if not any(
-                part in excluded
+                part in EXCLUDED_PARTS or part == "__pycache__"
                 for part in path.relative_to(ROOT).parts
             )
         ]
-        makefile = ROOT / "Makefile"
-        if makefile.exists():
-            paths.append(makefile)
     return sorted(
         path
         for path in paths
-        if path.exists() and ".git" not in path.parts
+        if path.exists()
+        and not any(
+            part in EXCLUDED_PARTS for part in path.relative_to(ROOT).parts
+        )
     )
 
 
@@ -321,28 +312,10 @@ def check_ast(path: Path, source: str, errors: List[str]) -> None:
                 )
 
 
-def check_makefile(path: Path, source: str, errors: List[str]) -> None:
-    """Makefile 줄 길이를 검사하되 recipe 탭은 허용한다."""
-    for number, line in enumerate(source.splitlines(), start=1):
-        if len(line) > MAKE_LINE_LIMIT:
-            add_error(
-                errors,
-                path,
-                number,
-                "Makefile 줄이 {0}자를 초과합니다 ({1}자).".format(
-                    MAKE_LINE_LIMIT,
-                    len(line),
-                ),
-            )
-
-
 def check_file(path: Path, errors: List[str]) -> None:
-    """파일 종류에 맞는 스타일 규칙을 적용한다."""
+    """Python 파일에 스타일 규칙을 적용한다."""
     source = decode_source(path, errors)
     if source is None:
-        return
-    if path.name == "Makefile":
-        check_makefile(path, source, errors)
         return
     check_python_lines(path, source, errors)
     check_ast(path, source, errors)
@@ -354,7 +327,7 @@ def main() -> int:
     paths = source_paths()
     if not paths:
         print("Style check: FAIL", file=sys.stderr)
-        print("검사할 Python 또는 Makefile이 없습니다.", file=sys.stderr)
+        print("검사할 Python 파일이 없습니다.", file=sys.stderr)
         return 1
     for path in paths:
         check_file(path, errors)

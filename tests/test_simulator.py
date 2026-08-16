@@ -11,6 +11,7 @@ from unittest.mock import patch
 from npu import generate_patterns
 from scripts import check_data
 from simulator import (
+    _OutOfRangeJsonNumber,
     analyze_data,
     bonus_comparison_rows,
     extract_pattern_size,
@@ -285,6 +286,21 @@ class JsonAnalysisTests(unittest.TestCase):
         self.assertEqual((report["passed"], report["failed"]), (1, 1))
         self.assertIn("허용 범위", report["results"][0]["reason"])
 
+    def test_underflowing_float_matrix_only_fails_its_case(self):
+        document = (
+            '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
+            '"patterns":{"size_1_bad":{"input":[[1e-400]],'
+            '"expected":"cross"},"size_1_good":{"input":[[1]],'
+            '"expected":"cross"}}}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "underflow-matrix.json"
+            path.write_text(document, encoding="utf-8")
+            report = analyze_data(load_json_file(path))
+
+        self.assertEqual((report["passed"], report["failed"]), (1, 1))
+        self.assertIn("허용 범위", report["results"][0]["reason"])
+
     def test_empty_patterns_are_rejected(self):
         with self.assertRaisesRegex(ValueError, "비어"):
             analyze_data({"filters": {}, "patterns": {}})
@@ -371,6 +387,14 @@ class ExtractionAndPerformanceTests(unittest.TestCase):
         data["patterns"]["size_25_2"]["input"][0][0] = 99
 
         with self.assertRaisesRegex(ValueError, "내용 해시"):
+            check_data.validate_dataset(data)
+
+    def test_data_check_reports_unserializable_json_marker(self):
+        data = load_json_file(check_data.DATA_PATH)
+        data["patterns"]["size_5_1"]["expected"] = _OutOfRangeJsonNumber(
+            False
+        )
+        with self.assertRaisesRegex(ValueError, "검증할 수 없는"):
             check_data.validate_dataset(data)
 
     def test_performance_has_required_sizes_and_repetitions(self):

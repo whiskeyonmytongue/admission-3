@@ -19,7 +19,7 @@ def main() -> int:
     actual_text = ".".join(str(value) for value in actual)
     if actual != EXPECTED_VERSION:
         print(
-            "Runtime check: FAIL - make verify는 Python {0}이 필요합니다. "
+            "Runtime check: FAIL - CI 검증은 Python {0}이 필요합니다. "
             "현재 버전: {1}".format(expected_text, actual_text),
             file=sys.stderr,
         )

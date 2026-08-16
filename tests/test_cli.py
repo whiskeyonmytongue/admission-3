@@ -182,6 +182,27 @@ class CliTests(unittest.TestCase):
         self.assertNotIn("\ud800", rendered)
         self.assertNotIn("Traceback", rendered)
 
+    def test_json_format_key_is_rejected_without_terminal_output(self):
+        document = (
+            '{"filters":{"size_1":{"cross":[[1]],"x":[[0]]}},'
+            '"patterns":{"size_1_\\u202e1":'
+            '{"input":[[1]],"expected":"cross"}}}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "format-key.json"
+            path.write_text(document, encoding="utf-8")
+            captured_out = io.StringIO()
+            captured_err = io.StringIO()
+            with patch("sys.stdout", captured_out), patch(
+                "sys.stderr", captured_err
+            ):
+                result = main.main(["--json", str(path)])
+
+        rendered = captured_out.getvalue() + captured_err.getvalue()
+        self.assertEqual(result, 1)
+        self.assertIn("제어 문자", captured_err.getvalue())
+        self.assertNotIn("\\u202e", rendered)
+
     def test_json_control_path_is_rejected_without_terminal_output(self):
         project_data = Path(__file__).parents[1] / "data.json"
         with tempfile.TemporaryDirectory() as directory:

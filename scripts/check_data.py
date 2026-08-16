@@ -57,7 +57,13 @@ def validate_dataset(data: object) -> None:
     )
     if not valid_patterns:
         raise ValueError("패턴 케이스 ID 6개가 기준과 일치하지 않습니다.")
-    if semantic_digest(data) != EXPECTED_SEMANTIC_SHA256:
+    try:
+        digest = semantic_digest(data)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError(
+            "공식 데이터에 검증할 수 없는 값이 있습니다: {0}".format(error)
+        ) from error
+    if digest != EXPECTED_SEMANTIC_SHA256:
         raise ValueError("공식 데이터의 내용 해시가 일치하지 않습니다.")
 
 

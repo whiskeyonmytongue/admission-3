@@ -16,7 +16,18 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.8"
-      - run: make verify
+      - name: Run Python 3.8 verification
+        run: |
+          set -eu
+          python scripts/check_runtime.py
+          PYTHONDONTWRITEBYTECODE=1 python -m scripts.check_syntax
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_style.py
+          PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -v
+          PYTHONDONTWRITEBYTECODE=1 python -m scripts.check_data
+          output_file="$(mktemp)"
+          trap 'rm -f "$output_file"' EXIT
+          printf '' | PYTHONDONTWRITEBYTECODE=1 python main.py >"$output_file"
+          grep -q '안전하게 종료' "$output_file"
 
   current-version:
     runs-on: ubuntu-latest
@@ -25,4 +36,14 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.14"
-      - run: make syntax style test json-check cli-check
+      - name: Run current-version compatibility checks
+        run: |
+          set -eu
+          PYTHONDONTWRITEBYTECODE=1 python -m scripts.check_syntax
+          PYTHONDONTWRITEBYTECODE=1 python scripts/check_style.py
+          PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -v
+          PYTHONDONTWRITEBYTECODE=1 python -m scripts.check_data
+          output_file="$(mktemp)"
+          trap 'rm -f "$output_file"' EXIT
+          printf '' | PYTHONDONTWRITEBYTECODE=1 python main.py >"$output_file"
+          grep -q '안전하게 종료' "$output_file"

@@ -28,6 +28,16 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_DATA_PATH = PROJECT_ROOT / "data.json"
 
 
+def _configure_output() -> None:
+    """터미널 출력을 UTF-8로 맞춰 한글 메뉴를 안전하게 표시한다."""
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if callable(reconfigure):
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (OSError, ValueError):
+            pass
+
+
 def read_mode(input_fn: Input, output_fn: Output) -> str:
     """지원하는 모드가 선택될 때까지 다시 묻는다."""
     while True:
@@ -229,6 +239,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     """명령행 모드를 실행하고 예상 가능한 오류를 종료 코드로 변환한다."""
     try:
+        _configure_output()
         arguments = build_parser().parse_args(argv)
         if arguments.generate is not None:
             print("=== Mini NPU Simulator 패턴 생성기 ===")
