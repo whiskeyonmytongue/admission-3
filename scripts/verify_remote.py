@@ -12,6 +12,7 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_REPOSITORY = "whiskeyonmytongue/admission-3"
+EXPECTED_BRANCH = "main"
 COMMAND_TIMEOUT_SECONDS = 15
 SHA_PATTERN = re.compile(r"^[0-9a-fA-F]{40}$")
 
@@ -89,12 +90,23 @@ def _remote_head(output: str) -> Optional[str]:
 
 
 def _repository_metadata(repository: str) -> Dict[str, Any]:
+    """GitHub CLI에서 공개 범위와 기본 브랜치 메타데이터를 읽는다."""
     return json.loads(
         run(
             "gh", "repo", "view", repository,
             "--json", "visibility,defaultBranchRef",
         )
     )
+
+
+def _local_state_error() -> Optional[str]:
+    """현재 체크아웃이 제출 가능한 브랜치·작업 트리인지 확인한다."""
+    branch = run("git", "branch", "--show-current")
+    if branch != EXPECTED_BRANCH:
+        return "현재 브랜치가 {0}이 아닙니다.".format(EXPECTED_BRANCH)
+    if run("git", "status", "--porcelain"):
+        return "작업 트리가 깨끗하지 않습니다."
+    return None
 
 
 def _metadata_fields(metadata: object) -> Tuple[object, object]:
@@ -120,11 +132,9 @@ def main() -> int:
     if repository_name(remote) != EXPECTED_REPOSITORY:
         return fail("origin 대상이 올바르지 않습니다.")
     try:
-        branch = run("git", "branch", "--show-current")
-        if branch != "main":
-            return fail("현재 브랜치가 main이 아닙니다.")
-        if run("git", "status", "--porcelain"):
-            return fail("작업 트리가 깨끗하지 않습니다.")
+        local_error = _local_state_error()
+        if local_error:
+            return fail(local_error)
         local_head = run("git", "rev-parse", "HEAD")
         remote_line = run("git", "ls-remote", "origin", "refs/heads/main")
     except (OSError, subprocess.CalledProcessError, TimeoutError):
@@ -151,12 +161,12 @@ def main() -> int:
         TimeoutError,
         json.JSONDecodeError,
         ValueError,
-    ) as error:
+    ):
         return fail("GitHub 메타데이터를 확인하지 못했습니다.")
-    if visibility != "PUBLIC" or default_branch != "main":
+    if visibility != "PUBLIC" or default_branch != EXPECTED_BRANCH:
         return fail(
-            "PUBLIC/main이 아닙니다: {0}/{1}".format(
-                visibility, default_branch
+            "PUBLIC/{0}이 아닙니다: {1}/{2}".format(
+                EXPECTED_BRANCH, visibility, default_branch
             )
         )
     print("[PASS] PUBLIC/main/HEAD {0} 일치".format(local_head[:7]))

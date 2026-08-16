@@ -7,7 +7,7 @@ import sys
 import unicodedata
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from npu import (
     EPSILON,
@@ -148,13 +148,13 @@ def _normalize_loaded_data(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-def _invalid_json_reason(value: object) -> Optional[str]:
+def _walk_json_values(value: object) -> Iterator[object]:
+    """깊은 JSON 구조를 재귀 없이 순회하고 순환 참조를 건너뛴다."""
     pending = [value]
     visited = set()
     while pending:
         current = pending.pop()
-        if isinstance(current, _InvalidJsonObject):
-            return current.reason
+        yield current
         if not isinstance(current, (list, dict)):
             continue
         identity = id(current)
@@ -165,26 +165,21 @@ def _invalid_json_reason(value: object) -> Optional[str]:
             pending.extend(current)
         else:
             pending.extend(current.values())
+
+
+def _invalid_json_reason(value: object) -> Optional[str]:
+    """JSON 구조 안의 첫 번째 객체 오류 사유를 반환한다."""
+    for current in _walk_json_values(value):
+        if isinstance(current, _InvalidJsonObject):
+            return current.reason
     return None
 
 
 def _contains_out_of_range_number(value: object) -> bool:
-    pending = [value]
-    visited = set()
-    while pending:
-        current = pending.pop()
+    """JSON 구조 안에 범위를 벗어난 숫자 표식이 있는지 확인한다."""
+    for current in _walk_json_values(value):
         if isinstance(current, _OutOfRangeJsonNumber):
             return True
-        if not isinstance(current, (list, dict)):
-            continue
-        identity = id(current)
-        if identity in visited:
-            continue
-        visited.add(identity)
-        if isinstance(current, list):
-            pending.extend(current)
-        else:
-            pending.extend(current.values())
     return False
 
 

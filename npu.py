@@ -173,24 +173,27 @@ def normalize_label(label: object) -> str:
 
 
 def generate_patterns(size: int) -> Tuple[Matrix, Matrix]:
-    """홀수 N에 대해 중앙 행·열 Cross와 두 대각선 X를 생성한다."""
+    """N에 대해 중앙 Cross와 두 대각선 X를 생성한다."""
     if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
-        raise ValueError("크기는 0보다 큰 홀수 정수여야 합니다.")
-    if size % 2 == 0:
-        raise ValueError("중앙선이 하나인 패턴을 위해 홀수 크기만 지원합니다.")
+        raise ValueError("크기는 0보다 큰 정수여야 합니다.")
     if size > MAX_PATTERN_SIZE:
         raise ValueError(
             "패턴 크기는 {0} 이하만 지원합니다.".format(MAX_PATTERN_SIZE)
         )
 
-    center = size // 2
+    center_left = (size - 1) // 2
+    center_right = size // 2
     cross = []  # type: Matrix
     x_pattern = []  # type: Matrix
     for row in range(size):
         cross_row = []  # type: List[float]
         x_row = []  # type: List[float]
         for column in range(size):
-            cross_row.append(1.0 if row == center or column == center else 0.0)
+            in_center_rows = center_left <= row <= center_right
+            in_center_columns = center_left <= column <= center_right
+            cross_row.append(
+                1.0 if in_center_rows or in_center_columns else 0.0
+            )
             is_diagonal = row == column or row + column == size - 1
             x_row.append(1.0 if is_diagonal else 0.0)
         cross.append(cross_row)

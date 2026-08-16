@@ -78,9 +78,12 @@ class PolicyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             normalize_label("circle")
 
-    def test_even_pattern_size_is_rejected(self):
-        with self.assertRaisesRegex(ValueError, "홀수"):
-            generate_patterns(4)
+    def test_even_pattern_size_is_supported(self):
+        cross, x_pattern = generate_patterns(4)
+        self.assertEqual(len(cross), 4)
+        self.assertEqual(cross[0], [0.0, 1.0, 1.0, 0.0])
+        self.assertEqual(cross[1], [1.0, 1.0, 1.0, 1.0])
+        self.assertEqual(x_pattern[0], [1.0, 0.0, 0.0, 1.0])
 
     def test_pattern_size_and_repetitions_have_safe_limits(self):
         with self.assertRaisesRegex(ValueError, "이하"):

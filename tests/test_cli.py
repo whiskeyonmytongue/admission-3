@@ -13,7 +13,7 @@ import main
 
 class CliTests(unittest.TestCase):
     def test_run_cli_handles_eof_directly(self):
-        for prefix in ([], ["1"], ["2"]):
+        for prefix in ([], ["1"], ["2"], ["3"]):
             with self.subTest(prefix=prefix):
                 answers = iter(prefix)
                 lines = []
@@ -34,7 +34,7 @@ class CliTests(unittest.TestCase):
                 self.assertNotIn("저장", output)
 
     def test_run_cli_handles_keyboard_interrupt_directly(self):
-        for prefix in ([], ["1"], ["2"]):
+        for prefix in ([], ["1"], ["2"], ["3"]):
             with self.subTest(prefix=prefix):
                 answers = iter(prefix)
                 lines = []
@@ -75,9 +75,11 @@ class CliTests(unittest.TestCase):
             result = main.main(["--json", str(data_path)])
 
         self.assertEqual(result, 1)
-        self.assertIn("통과: 3개", captured_out.getvalue())
-        self.assertIn("실패: 3개", captured_out.getvalue())
-        self.assertIn("size_5_1", captured_out.getvalue())
+        output = captured_out.getvalue()
+        self.assertIn("통과: 3개", output)
+        self.assertIn("실패: 3개", output)
+        self.assertIn("size_5_1", output)
+        self.assertNotIn("[보너스:", output)
 
     def test_interactive_default_json_path_is_project_stable(self):
         answers = iter(["2", ""])
@@ -255,17 +257,6 @@ class CliTests(unittest.TestCase):
         self.assertEqual(result, 1)
         self.assertIn("filters는 객체여야 합니다", captured_err.getvalue())
 
-    def test_generate_rejects_even_size(self):
-        captured_out = io.StringIO()
-        captured_err = io.StringIO()
-        with patch("sys.stdout", captured_out), patch(
-            "sys.stderr",
-            captured_err,
-        ):
-            result = main.main(["--generate", "4"])
-        self.assertEqual(result, 1)
-        self.assertIn("홀수", captured_err.getvalue())
-
     def test_invalid_menu_and_row_are_retried(self):
         answers = iter(
             [
@@ -287,9 +278,19 @@ class CliTests(unittest.TestCase):
         result = main.run_cli(lambda _prompt: next(answers), lines.append)
         output = "\n".join(lines)
         self.assertEqual(result, 0)
-        self.assertIn("1 또는 2", output)
+        self.assertIn("1, 2 또는 3", output)
         self.assertIn("각 줄에 3개의 숫자", output)
         self.assertIn("판정: A", output)
+
+    def test_bonus_menu_generates_patterns_and_comparison(self):
+        answers = iter(["3", "0", "4"])
+        lines = []
+        result = main.run_cli(lambda _prompt: next(answers), lines.append)
+        output = "\n".join(lines)
+        self.assertEqual(result, 0)
+        self.assertIn("0보다 큰", output)
+        self.assertIn("Cross 4×4", output)
+        self.assertIn("2D/1D MAC 비교", output)
 
     def test_eof_exits_without_traceback(self):
         captured = io.StringIO()

@@ -24,6 +24,7 @@ python3 main.py
 ```text
 1. 사용자 입력 (3×3)
 2. data.json 분석
+3. 보너스 패턴 생성·2D/1D 비교
 ```
 
 저장된 JSON 6개 케이스는 아래 명령으로 바로 분석합니다.
@@ -50,8 +51,8 @@ Python 3.8이 없다면 GitHub Actions의 Python 3.8 검증 결과를 확인할 
 | 수동 3×3 판정 | PASS | `python3 main.py` |
 | 제공 JSON 판정 | 3 PASS·3 예상 동점 FAIL | `python3 main.py --json data.json` |
 | 3·5·13·25 성능 측정 | 각 10회 평균 | JSON 실행 결과의 성능 표 |
-| 1D 메모리 접근 비교 | 완료 | `python3 main.py --generate 5` |
-| 홀수 N 패턴 생성 | 완료 | `python3 main.py --generate 5` |
+| 1D 메모리 접근 비교 | 완료 | `python3 main.py` → 메뉴 `3` |
+| 짝수·홀수 N 패턴 생성 | 완료 | `python3 main.py` → 메뉴 `3` |
 | 자동 테스트 | 81개 PASS | GitHub Actions `verify` workflow |
 | Python 3.8·3.14 실행 | 각각 81개 PASS | 공식 Python 컨테이너 |
 | Python 스타일 | PASS | `python3.8 scripts/check_style.py` |
@@ -123,8 +124,7 @@ B 점수가 5로 A 점수 1보다 높아 `B`로 판정됩니다.
 ### 제공 JSON 일괄 분석
 
 아래 화면은 `python3 main.py --json data.json`을 실제로 실행한 결과입니다.
-6개 케이스의 판정, N² 연산 횟수, 2D/1D 보너스 비교와 최종 집계를 한 번에
-확인할 수 있습니다.
+6개 케이스의 판정, N² 연산 횟수와 최종 집계를 확인할 수 있습니다.
 
 ![과제에서 제공한 data.json의 6개 케이스를 분석한 터미널 실행 화면](docs/evidence/images/json-analysis-terminal.png)
 
@@ -143,6 +143,30 @@ B 점수가 5로 A 점수 1보다 높아 `B`로 판정됩니다.
 | 5×5 | 0.010208 | 25 |
 | 13×13 | 0.059192 | 169 |
 | 25×25 | 0.211747 | 625 |
+
+2D/1D MAC 비교는 모드 2에 섞지 않고 메뉴 3의 보너스 경로에서만 출력합니다.
+
+### 실제 모드 실행 영상
+
+[필수 모드 영상 보기](docs/evidence/videos/mandatory-modes.mp4) ·
+[보너스 영상 보기](docs/evidence/videos/bonus-mode.mp4)
+
+두 영상 모두 제출 프로그램을 실제로 다시 실행한 터미널 출력으로 만들었습니다.
+개인 경로는 화면에서 `data.json`으로 줄여 표시했습니다. 필수 영상과 보너스
+영상을 나눠서 보면 평가 대상 기능과 추가 기능을 구분해 확인할 수 있습니다.
+
+| 장면 | 실제 실행 | 화면에서 확인할 내용 |
+|---|---|---|
+| 필수: 모드 1 | `python3 main.py` 후 메뉴에서 `1` | 3×3 필터 A/B와 패턴 입력 → MAC 점수 → B 판정 |
+| 필수: 모드 2 | `python3 main.py` 후 메뉴에서 `2` | `size_N` 연결 → 6개 케이스별 판정 → 성능 표 → 집계 |
+| 보너스 | `python3 main.py` 후 메뉴 `3`, N에 `5` 입력 | 5×5 Cross/X 생성과 2D·1D 평균 시간 비교 |
+
+영상 결과를 다시 만들려면 개발용 도구인 Pillow와 ffmpeg가 필요합니다.
+프로그램 자체는 여전히 외부 Python 패키지 없이 실행됩니다.
+
+```bash
+python3 scripts/render_demo_video.py
+```
 
 측정값은 2026-08-09 Python 3.8 컨테이너에서 얻었습니다. 실행 시간은 CPU
 상태에 따라 달라집니다.
@@ -222,22 +246,23 @@ Mode 2는 JSON의 expected 라벨과 비교해 전체 결과를 집계해야 하
 
 ## 보너스 실행
 
-아래 명령은 5×5 Cross/X 패턴을 만든 뒤 3·5·13·25 크기의 2D/1D MAC 성능을
-같은 반복 횟수로 비교합니다.
+메뉴에서 3번을 고르면 5×5 Cross/X 패턴을 만든 뒤 3·5·13·25 크기의
+2D/1D MAC 성능을 같은 반복 횟수로 비교합니다.
 
 ```bash
-python3 main.py --generate 5
+python3 main.py
+# 메뉴에서 3 입력
+# 패턴 크기 N에 5 입력
 ```
 
-크기를 직접 지정할 때는 `python3 main.py --generate 5`처럼 실행합니다.
-중앙선이 하나로 정해지지 않는 짝수 N은 오류로 처리하며, 안전한 메모리·출력을
-위해 N은 100 이하, 홀수 크기만 지원합니다. 따라서 실제 최대 생성 크기는
-99입니다. 큰 N을 추가로 지원하려면 아래의
+메뉴 경로에서 크기를 입력받아 검증합니다. 짝수 N은 가운데 두 행과 두 열을
+사용해 2칸 폭의 Cross를 만들고, X는 두 대각선을 사용합니다. 안전한 메모리·
+출력을 위해 N은 100 이하로 제한합니다. 큰 N을 추가로 지원하려면 아래의
 스트리밍·블록화 계획을 적용해야 합니다.
 
 ### 큰 N 처리 계획
 
-현재 `--generate`는 Cross와 X의 N×N 행렬을 메모리에 모두 만든 뒤 모든 행을
+현재 메뉴 3은 Cross와 X의 N×N 행렬을 메모리에 모두 만든 뒤 모든 행을
 출력하고 JSON 분석은 완성된 행렬을 필터별로 따로 순회합니다. 아래 내용은
 구현 결과가 아니라 큰 N을 지원할 때 권장하는 개선 순서입니다.
 
@@ -283,7 +308,7 @@ python3 main.py --generate 5
 
 | 상황 | 처리 방식 |
 |---|---|
-| 메뉴에서 1·2 외 입력 | 안내 후 메뉴 재입력 |
+| 메뉴에서 1·2·3 외 입력 | 안내 후 메뉴 재입력 |
 | 수동 입력의 열 수·숫자 오류 | 해당 행 재입력 |
 | EOF 또는 Ctrl+C | UTF-8 터미널에서 traceback 없이 종료 코드 0 |
 | JSON 문법·최상위 스키마 오류 | 원인을 출력하고 종료 코드 1 |
@@ -295,7 +320,7 @@ python3 main.py --generate 5
 | JSON `NaN`·`Infinity`·float overflow·underflow | 오류 또는 해당 케이스 FAIL |
 | 패턴 키·라벨·행렬 오류 | 해당 케이스만 FAIL, 다음 케이스 계속 실행 |
 | 점수 차이 `< 1e-9` | `UNDECIDED`로 판정 |
-| 짝수 패턴 생성 요청 | 홀수 크기 안내 후 종료 코드 1 |
+| 0 이하·100 초과 패턴 크기 | 오류 안내 후 보너스 크기 재입력 |
 
 의도적으로 손상한 입력까지 검사한 테스트 목록은 아래 명령으로 확인합니다.
 
@@ -351,5 +376,6 @@ python3.8 scripts/verify_remote.py
 ├── scripts/check_syntax.py         # 전체 Python 파일 구문 검사
 ├── scripts/verify_remote.py        # PUBLIC/main/HEAD 검증
 ├── docs/evidence/images/           # 실제 터미널 실행 화면
+├── docs/evidence/videos/           # 필수·보너스 실행 영상
 ├── .github/workflows/verify.yml    # Python 3.8·3.14 CI
 ```
